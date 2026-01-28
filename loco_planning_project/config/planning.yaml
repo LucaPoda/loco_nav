@@ -1,0 +1,13 @@
+# FILE: loco_planning_project/config/planning.yaml
+
+# Must match params.py ['limo0']['dt']
+dt: 0.01
+
+# These were default args in Python, but you said they depend on config.
+# Set them here to match the real robot capabilities.
+robot_radius: 0.2
+v_max: 0.3          # Updated from your main example
+curvature_max: 3.0  # Min turning radius ~0.33m
+
+# Planning specific
+safety_margin: 0.05

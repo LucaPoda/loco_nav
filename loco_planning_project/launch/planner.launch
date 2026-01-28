@@ -1,0 +1,11 @@
+<launch>
+    <arg name="robot_name" default="limo0" />
+    <arg name="method" default="prm" />
+
+    <node pkg="loco_planning_project" type="planner_node" name="planner_node" output="screen">
+        <rosparam command="load" file="$(find loco_planning_project)/config/planning.yaml" />
+        
+        <param name="robot_name" value="$(arg robot_name)" />
+        <param name="planning_method" value="$(arg method)" />
+    </node>
+</launch>

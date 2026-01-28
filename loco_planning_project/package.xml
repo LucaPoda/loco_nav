@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>loco_planning_project</name>
+  <version>0.0.1</version>
+  <description>C++ Planning Node for Victim Rescue Project</description>
+  <maintainer email="student@unitn.it">Student Name</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <depend>visualization_msgs</depend> <!-- for visualization in rViz -->
+
+  <depend>loco_planning</depend>   
+  <depend>obstacles_msgs</depend>  
+  <depend>ompl</depend>            
+</package>
