@@ -1,0 +1,17 @@
+<library path="lib/libplanner_lib">
+  <class name="loco_planning_project/PlannerPRM" 
+         type="PlannerPRM" 
+         base_class_type="PlannerBase">
+    <description>
+      A Probabilistic Roadmap (PRM) planner implementation.
+    </description>
+  </class>
+
+  <class name="loco_planning_project/PlannerECD" 
+         type="PlannerECD" 
+         base_class_type="PlannerBase">
+    <description>
+      An Exact Cell Decomposition planner implementation.
+    </description>
+  </class>
+</library>

@@ -1,19 +1,19 @@
-#ifndef PLANNER_PRM_H
-#define PLANNER_PRM_H
+#ifndef PLANNER_ECD_H
+#define PLANNER_ECD_H
 
 #include "planners/planner_base.hpp"
 #include <ros/ros.h>
 
-class PlannerPRM : public PlannerBase {
+class PlannerECD : public PlannerBase {
 public:
     // 1. Default Constructor (Required by pluginlib)
-    PlannerPRM();
+    PlannerECD();
 
     // 2. Destructor
-    virtual ~PlannerPRM();
+    virtual ~PlannerECD();
 
     // 3. Initialization Override
-    // We override this to load PRM-specific parameters
+    // We override this to load ecd-specific parameters
     void initialize(const std::string& robot_name) override;
 
 protected:
@@ -22,6 +22,7 @@ protected:
 
 private:
     // Add your algorithm-specific parameters here
-    
+
 };
-#endif
+
+#endif // PLANNER_ECD_H

@@ -25,6 +25,9 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   loco_planning     
   obstacles_msgs
+
+  pluginlib
+  roslib
 )
 
 find_package(ompl REQUIRED)
@@ -62,7 +65,7 @@ set(CLIPPER_SOURCES
 add_library(planner_lib
   src/planners/planner_base.cpp
   src/planners/planner_prm.cpp
-  src/planners/planner_combinatorial.cpp
+  src/planners/planner_ecd.cpp
   ${CLIPPER_SOURCES}  # <--- Compiling Clipper here!
 )
 

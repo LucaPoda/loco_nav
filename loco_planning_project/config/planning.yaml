@@ -1,13 +1,31 @@
-# FILE: loco_planning_project/config/planning.yaml
+robot_name: "limo0"
 
-# Must match params.py ['limo0']['dt']
-dt: 0.01
+# Time Step (dt)
+dt: 0.01  
+# Physical radius of the Limo robot (meters)
+robot_radius: 0.22  
 
-# These were default args in Python, but you said they depend on config.
-# Set them here to match the real robot capabilities.
-robot_radius: 0.2
-v_max: 0.3          # Updated from your main example
-curvature_max: 3.0  # Min turning radius ~0.33m
+# Extra buffer distance kept from obstacles (meters)
+safety_margin: 0.05 
 
-# Planning specific
-safety_margin: 0.05
+# Resolution for polygon rounding in Clipper2 (meters)
+inflation_epsilon: 0.01
+
+# Maximum linear velocity (m/s)
+# Used to generate the timed reference trajectory
+v_max: 0.5 
+
+# Maximum curvature (1/turning_radius)
+# curvature_max = 1.0 means Min Turning Radius = 1.0m
+curvature_max: 1.0 
+
+
+# --- Probabilistic Roadmap (PRM) ---
+prm:
+  num_samples: 2500        # Number of random nodes to scatter
+  connection_radius: 2.0   # Max distance to connect two nodes
+  nearest_neighbors: 10    # Max neighbors to check for connection
+
+# --- Exact Cell Decomposition Planner ---
+ecd:
+  heuristic_weight: 1.0

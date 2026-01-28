@@ -13,13 +13,10 @@ private:
 
 public:
     PlannerVisualizer() {
-        // 1. Obstacles Publisher (Dynamic)
-        // Not latched (latch=false), because these update constantly.
-        obstacles_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/obstacles", 1);
+        // 1. Obstacles Publisher 
+        obstacles_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/obstacles", 1, true);
 
-        // 2. Borders Publisher (Static)
-        // LATCHED (latch=true). This means we publish once, and ROS keeps 
-        // sending it to any new node (like RViz) that joins later.
+        // 2. Borders Publisher
         borders_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/borders", 1, true);
     }
 

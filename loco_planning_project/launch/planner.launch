@@ -1,11 +1,35 @@
-<launch>
-    <arg name="robot_name" default="limo0" />
-    <arg name="method" default="prm" />
+<!-- 
+
+USAGE:
+- DEFAULT:PRM
+roslaunch loco_planning_project planner.launch
+
+- PRM
+roslaunch loco_planning_project planner.launch algo:=prm
+
+- ECD
+roslaunch loco_planning_project planner.launch algo:=ecd
+
+-->
+
+<launch>    
+    <arg name="algo" default="prm" />
 
     <node pkg="loco_planning_project" type="planner_node" name="planner_node" output="screen">
+        
         <rosparam command="load" file="$(find loco_planning_project)/config/planning.yaml" />
         
-        <param name="robot_name" value="$(arg robot_name)" />
-        <param name="planning_method" value="$(arg method)" />
+        <param 
+            name="planning_plugin" 
+            value="loco_planning_project/PlannerPRM" 
+            if="$(eval arg('algo') == 'prm')" 
+        />
+               
+        <param 
+            name="planning_plugin" 
+            value="loco_planning_project/PlannerECD" 
+            if="$(eval arg('algo') == 'ecd')" 
+        />
+               
     </node>
 </launch>

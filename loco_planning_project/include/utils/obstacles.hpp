@@ -3,13 +3,12 @@
 
 #include <geometry_msgs/Polygon.h>
 #include <obstacles_msgs/ObstacleMsg.h>
+#include <Eigen/Dense>
 #include <vector>
 #include <cmath>
 #include <limits>
 #include <algorithm>
 #include "clipper2/clipper.h" 
-
-#include <utils/dubins_ompl.hpp>
 
 struct Point2D {
     double x, y;
@@ -94,6 +93,10 @@ public:
     bool isInsideAABB(double x, double y) const {
         return (x >= aabb_min_.x && x <= aabb_max_.x &&
                 y >= aabb_min_.y && y <= aabb_max_.y);
+    }
+
+    bool checkCollision(const Eigen::Vector3d& p) const {
+        return checkCollision(p.x(), p.y());
     }
 
     // checks collisions with the specified point
