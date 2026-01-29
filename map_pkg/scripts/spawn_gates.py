@@ -1,16 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, yaml, random
+import os, yaml, random, sys, math
 import numpy as np
 import subprocess
 import rospy
+from shapely.affinity import rotate
+from shapely.geometry import Polygon
 from termcolor import colored
 from geo_utility import *
+
+# sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
+# from spawn_borders import get_borders_points
+
+# 1. First, tell Python where to look for your files
+# We use os.path to make it more robust, but your hardcoded path works too
+sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
+
+# 2. Now that the path is set, you can safely import your local modules
+# from geo_utility import square
 from spawn_borders import get_borders_points
 
 L = 1.0  # Default size for gate
 DELTA = L / 2.0 + 0.1  # 0.1 is half the border width + something
+
+
+def square(X, Y, L, yaw=0):
+    return rotate(Polygon([
+        (X-L/2.0, Y-L/2.0),
+        (X+L/2.0, Y-L/2.0),
+        (X+L/2.0, Y+L/2.0),
+        (X-L/2.0, Y+L/2.0)
+    ]), math.degrees(yaw), origin='center')
 
 
 def spawn_gates():

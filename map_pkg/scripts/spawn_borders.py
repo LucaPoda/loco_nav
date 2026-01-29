@@ -9,6 +9,15 @@ import rospy
 
 from geo_utility import *
 
+def gen_hex_points(L):
+    points = []
+    for i in range(6):
+        angle_rad = math.radians(60 * i)
+        points.append((L * math.cos(angle_rad), L * math.sin(angle_rad)))
+    return points
+
+def gen_rect_points(dx, dy):
+    return [(-dx/2.0, -dy/2.0), (dx/2.0, -dy/2.0), (dx/2.0, dy/2.0), (-dx/2.0, dy/2.0)]
 
 def get_borders_points(yaml_file):
     try:

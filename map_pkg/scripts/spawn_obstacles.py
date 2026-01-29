@@ -1,13 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, yaml, random
-import numpy as np
-from pathlib import Path
+import os
+import sys
+import yaml
+import random
 import subprocess
 import rospy
+import numpy as np
+from pathlib import Path
 
-from geo_utility import *
+# 1. First, tell Python where to look for your files
+# We use os.path to make it more robust, but your hardcoded path works too
+sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
+
+# 2. Now that the path is set, you can safely import your local modules
+from geo_utility import rectangle
 from spawn_borders import get_borders_points
 
 
