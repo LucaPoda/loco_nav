@@ -7,7 +7,10 @@ import yaml
 import subprocess
 import rospy
 
-from geo_utility import *
+from shapely.geometry import Polygon, Point
+from shapely.affinity import rotate
+
+# from geo_utility import *
 
 def gen_hex_points(L):
     points = []
