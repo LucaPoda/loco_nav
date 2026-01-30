@@ -18,7 +18,7 @@ public:
 
 protected:
     // 4. The Core Logic Override
-    std::vector<Eigen::Vector3d> planPath() override;
+    Roadmap buildRoadmap() override;
 
 private:
     // Add your algorithm-specific parameters here

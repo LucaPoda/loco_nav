@@ -5,6 +5,7 @@
 #include <loco_planning/Reference.h>
 #include <Eigen/Dense>
 #include "utils/environment_handler.hpp"
+#include "utils/roadmap.hpp"
 #include <vector>
 #include <string>
 
@@ -36,7 +37,7 @@ protected:
     }
 
     // Abstract method to calculate the geometric path
-    virtual std::vector<Eigen::Vector3d> planPath() = 0;
+    virtual Roadmap buildRoadmap() = 0;
 
 private:
     // Environment data form ROS:

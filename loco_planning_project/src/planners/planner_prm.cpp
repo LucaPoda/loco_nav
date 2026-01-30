@@ -27,32 +27,12 @@ void PlannerPRM::initialize(const std::string& robot_name) {
 }
 
 // 3. The Planning Logic
-std::vector<Eigen::Vector3d> PlannerPRM::planPath() {
-    // A. ACCESS DATA (Read-Only)
-    // Use the protected getters from PlannerBase
-    const auto& obstacles = getEnvironment().getObstacles();
-    const auto& start = getEnvironment().getStartPose();
-    const auto& goal = getEnvironment().getGoalPose();
-    
-    // Check constraints (e.g. from planning.yaml)
-    // double v_max = getParams().v_max;
+Roadmap PlannerPRM::buildRoadmap() {
+    Roadmap roadmap;
 
-    ROS_INFO("PRM: Planning from [%.2f, %.2f] to [%.2f, %.2f]",
-             start.x(), start.y(), goal.x(), goal.y());
+    // TODO: build roadmap (graph) with PRM 
 
-    std::vector<Eigen::Vector3d> path;
-
-    // --- YOUR ALGORITHM GOES HERE ---
-    
-    // TODO: Implement the PRM algorithm
-
-    // Example dummy path (Start -> Goal) just to test the pipeline
-    if (path.empty()) {
-        path.push_back(start);
-        path.push_back(goal);
-    }
-
-    return path;
+    return roadmap;
 }
 
 // 4. Register the Plugin

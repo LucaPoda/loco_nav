@@ -61,22 +61,24 @@ void PlannerBase::run() {
 
 
             // Plan Geometric Path using a specific planner from plugin
-            std::vector<Eigen::Vector3d> geometric_path = planPath();
+            Roadmap roadmap = buildRoadmap();
 
-            if (!geometric_path.empty()) {
-                ROS_INFO("Path found with %lu waypoints. Generating trajectory...", geometric_path.size());
+            
+
+            // if (!geometric_path.empty()) {
+            //     ROS_INFO("Path found with %lu waypoints. Generating trajectory...", geometric_path.size());
 
 
-                // Compute reference trajectory from the geometric path
-                auto reference_traj = computeReferenceFromPath(geometric_path);
+            //     // Compute reference trajectory from the geometric path
+            //     auto reference_traj = computeReferenceFromPath(geometric_path);
 
-                // Publish the trajectory to the topic
-                publishReference(reference_traj);
+            //     // Publish the trajectory to the topic
+            //     publishReference(reference_traj);
                 
-                path_computed_ = true; // Stop planning (One-shot mission)
-            } else {
-                ROS_WARN_THROTTLE(5, "Planner Plugin returned an empty path.");
-            }
+            //     path_computed_ = true; // Stop planning (One-shot mission)
+            // } else {
+            //     ROS_WARN_THROTTLE(5, "Planner Plugin returned an empty path.");
+            // }
         } else if (!env_.isReady()) {
             ROS_INFO_THROTTLE(5, "Waiting for data...");
         }
