@@ -59,7 +59,45 @@ public:
     
     // Ready if we have Borders, Start, and Goal (Dynamic obstacles are optional but usually needed)
     bool isReady() const {
-        return map_borders_ready_ && goal_ready_ && start_ready_;
+        //added heck to ensure obstacles are ready
+        if(map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_){
+            ROS_INFO("Map borders, obstacles, start and goal ready.");} 
+        else{
+            ROS_INFO("Map borders, obstacles, start and goal not ready yet.");
+        }
+        return map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_;    
+    }
+
+    // Helper function to check occupancy
+    bool checkOccupancy(double x, double y) const {
+        // 1. Check Map Borders
+        // Returns TRUE if the point is OUTSIDE the map borders (a collision)
+        if (border_obstacle_.checkCollision(x, y)) {
+            return true; 
+        }
+
+        // 2. Check Obstacles
+        // Returns TRUE if the point is INSIDE an inflated obstacle (a collision)
+        for (const auto& obs : obstacles_) {
+            if (obs.checkCollision(x, y)) {
+                return true;
+            }
+        }
+
+        return false; // Point is in free space
+    }
+
+    // Random sampler std::uniform_real_distribution generates points in a rectangular grid,
+    // we must use a bounding box to "box in" the map hexagon,
+    // and then use collision check to "trim" away the points that fall outside the hexagon
+    double getMapWidth() const {
+        // Distance between the furthest X points of the hexagon
+        return border_obstacle_.getMaxX() - border_obstacle_.getMinX();
+    }
+
+    double getMapHeight() const {
+        // Distance between the furthest Y points of the hexagon
+        return border_obstacle_.getMaxY() - border_obstacle_.getMinY();
     }
 
 private:
@@ -95,6 +133,10 @@ private:
 
         obstacles_ready_ = true;
         visualizer_.publishObstacles(obstacles_);
+
+        // Add this to avoid segfault
+        sub_obs_.shutdown(); // This kills the subscription!
+        ROS_INFO("Obstacles received. Unsubscribing to save resources.");
     }
 
     void goalCallback(const geometry_msgs::PoseArray::ConstPtr& msg) {

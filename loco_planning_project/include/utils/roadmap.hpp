@@ -30,8 +30,10 @@ public:
 
     // --- Edge Logic ---
     void addEdge(int id1, int id2, double weight) {
-        addEdge(id1, id2, weight);
-        addEdge(id2, id1, weight);
+        // Add edge from 1 to 2
+        adjacency_list_[id1].push_back({id2, weight});
+        // Add edge from 2 to 1 (making it undirected)
+        adjacency_list_[id2].push_back({id1, weight});
     }
 
     // --- Getters ---

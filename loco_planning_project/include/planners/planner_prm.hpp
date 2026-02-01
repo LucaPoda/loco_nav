@@ -21,7 +21,15 @@ protected:
     Roadmap buildRoadmap() override;
 
 private:
-    // Add your algorithm-specific parameters here
-    
+    // PRM-specific parameters and helepers here
+    // Parameters
+    int n_samples;
+    int k_neighbors;
+    double resolution;
+
+    // Helpers
+    // Using Eigen for internal planning logic is significantly more efficient than geometry_msgs::Point
+    bool isCollisionFree(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2);     
 };
 #endif
+
