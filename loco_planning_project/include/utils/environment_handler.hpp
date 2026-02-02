@@ -14,19 +14,26 @@
 #include "utils/obstacles.hpp"
 #include "utils/planner_visualizer.hpp" // Include your visualizer
 
+struct VictimData {
+    Eigen::Vector2d position;
+    double reward;
+};
+
 class EnvironmentHandler {
 public:
     EnvironmentHandler() 
         : map_borders_ready_(false), 
           obstacles_ready_(false), 
           goal_ready_(false), 
-          start_ready_(false) 
+          start_ready_(false),
+          victims_ready_(false) 
     { 
         // Default constructor
     }
 
     void init(ros::NodeHandle& nh, const std::string& robot_name) {
         ros::NodeHandle pnh("~"); 
+        std::vector<VictimData> victims_;
 
         // 1. Load Parameters
         pnh.param<double>("robot_radius", robot_radius_, 0.2);
@@ -43,6 +50,7 @@ public:
         sub_borders_ = nh.subscribe("/map_borders", 1, &EnvironmentHandler::mapBordersCallback, this);
         sub_obs_ = nh.subscribe("/obstacles", 1, &EnvironmentHandler::obstaclesCallback, this);
         sub_goal_ = nh.subscribe("/gates", 1, &EnvironmentHandler::goalCallback, this);
+        sub_victims_ = nh.subscribe("/victims", 1, &EnvironmentHandler::victimsCallback, this);
         
         std::string odom_topic = "/" + robot_name + "/odom";
         sub_odom_ = nh.subscribe(odom_topic, 1, &EnvironmentHandler::odomCallback, this);
@@ -53,19 +61,19 @@ public:
     // --- GETTERS ---
     const std::vector<Obstacle>& getObstacles() const { return obstacles_; }
     const Obstacle& getMapBorders() const { return border_obstacle_; } 
-    
     const Eigen::Vector3d& getStartPose() const { return start_pose_; }
     const Eigen::Vector3d& getGoalPose() const { return goal_pose_; }
+    const std::vector<VictimData>& getVictims() const { return victims_; }    
     
-    // Ready if we have Borders, Start, and Goal (Dynamic obstacles are optional but usually needed)
+    // Ready if we have Borders, Start, Goal and victims 
     bool isReady() const {
-        //added heck to ensure obstacles are ready
-        if(map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_){
-            ROS_INFO("Map borders, obstacles, start and goal ready.");} 
+        bool all_ready = map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_ && victims_ready_;
+        if(all_ready){
+            ROS_INFO("Map borders, obstacles, victims, start and goal ready.");} 
         else{
-            ROS_INFO("Map borders, obstacles, start and goal not ready yet.");
+            ROS_INFO("Map borders, obstacles, victims, start and goal not ready yet.");
         }
-        return map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_;    
+        return all_ready;    
     }
 
     // Helper function to check occupancy
@@ -140,8 +148,7 @@ private:
         obstacles_ready_ = true;
         visualizer_.publishObstacles(obstacles_);
 
-        // Add this to avoid segfault
-        sub_obs_.shutdown(); // This kills the subscription!
+        sub_obs_.shutdown(); // This kills the subscription, as obstacles are fixed so it's not needed anymore
         ROS_INFO("Obstacles received. Unsubscribing to save resources.");
     }
 
@@ -179,6 +186,17 @@ private:
         ROS_INFO("Start pose set: [%f, %f, %f]", start_pose_.x(), start_pose_.y(), start_pose_.z());
     }
 
+    void victimsCallback(const obstacles_msgs::ObstacleArrayMsg::ConstPtr& msg) {
+        victims_.clear();
+        for (const auto& obs : msg->obstacles) {
+            VictimData v;
+            v.position = Eigen::Vector2d(obs.polygon.points[0].x, obs.polygon.points[0].y);
+            v.reward = obs.radius; // This is the weight/score
+            victims_.push_back(v);
+        }
+        victims_ready_ = true;
+    }   
+
     // --- DATA ---
     double robot_radius_;
     double safety_margin_;
@@ -187,16 +205,17 @@ private:
 
     std::vector<Obstacle> obstacles_;
     Obstacle border_obstacle_;
-
     Eigen::Vector3d start_pose_;
     Eigen::Vector3d goal_pose_;
+    std::vector<VictimData> victims_;
 
     bool map_borders_ready_; // Renamed from map_ready_ to be specific
     bool obstacles_ready_;
     bool goal_ready_;
     bool start_ready_;
+    bool victims_ready_;
 
-    ros::Subscriber sub_borders_, sub_obs_, sub_goal_, sub_odom_;
+    ros::Subscriber sub_borders_, sub_obs_, sub_goal_, sub_odom_, sub_victims_;
     
     // The visualizer now lives here, because this class owns the data!
     PlannerVisualizer visualizer_; 
