@@ -8,6 +8,7 @@
 #include "utils/roadmap.hpp"
 #include <vector>
 #include <string>
+#include "utils/planner_visualizer.hpp"
 
 struct PlannerParams {
     double v_max;
@@ -38,6 +39,12 @@ protected:
 
     // Abstract method to calculate the geometric path
     virtual Roadmap buildRoadmap() = 0;
+
+    ros::Publisher roadmap_pub_;
+    // Generic function to visualize any roadmap graph
+    //void visualizeRoadmap(const Roadmap& roadmap);
+
+    PlannerVisualizer visualizer_;
 
 private:
     // Environment data form ROS:

@@ -17,6 +17,12 @@ struct Edge {
     double weight;
 };
 
+struct EdgeDisplay {
+    int u; // Node ID 1
+    int v; // Node ID 2
+    double weight;
+};
+
 class Roadmap {
 public:
     // --- Node Logic ---
@@ -45,6 +51,26 @@ public:
         auto it = adjacency_list_.find(id);
         return (it != adjacency_list_.end()) ? it->second : empty;
     }
+
+    std::vector<EdgeDisplay> getEdges() const {
+        std::vector<EdgeDisplay> edges;
+        
+        // Iterate through the adjacency map
+        for (const auto& entry : adjacency_list_) {
+            int u = entry.first;
+            const std::vector<Edge>& neighbors = entry.second;
+
+            for (const auto& edge : neighbors) {
+                int v = edge.to;
+                // Only add the edge if u < v to avoid adding (1,2) and (2,1)
+                if (u < v) {
+                    edges.push_back({u, v, edge.weight});
+                }
+            }
+        }
+        return edges;
+    }
+
 
 private:
     std::map<int, Node> nodes_;

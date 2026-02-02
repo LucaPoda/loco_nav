@@ -67,6 +67,7 @@ void PlannerBase::run() {
             if (!roadmap_built) {
                 ROS_INFO("Building Roadmap...");
                 roadmap = buildRoadmap();
+                visualizer_.publishRoadmap(roadmap);
                 roadmap_built = true; // <--- This stops the infinite loop!
                 
                 // Now call your search algorithm
