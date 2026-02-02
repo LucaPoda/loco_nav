@@ -4,42 +4,16 @@
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include "utils/obstacles.hpp" 
+#include "utils/roadmap.hpp"
 
 class PlannerVisualizer {
 private:
     ros::NodeHandle nh_;
     ros::Publisher obstacles_pub_;
     ros::Publisher borders_pub_;
+    ros::Publisher roadmap_pub_;
 
-public:
-    PlannerVisualizer() {
-        // 1. Obstacles Publisher 
-        obstacles_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/obstacles", 1, true);
-
-        // 2. Borders Publisher
-        borders_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/borders", 1, true);
-    }
-
-    // Call this inside your loop (Frequent updates)
-    void publishObstacles(const std::vector<Obstacle>& obstacles) {
-        visualization_msgs::MarkerArray msg;
-        int id = 0;
-        for (const auto& obs : obstacles) {
-            // RED Color for Obstacles
-            msg.markers.push_back(createMarker(obs, id++, 1.0, 0.0, 0.0, "obstacles"));
-        }
-        obstacles_pub_.publish(msg);
-    }
-
-    // Call this ONLY when you receive the map/borders (Rare updates)
-    void publishBorders(const Obstacle& border) {
-        visualization_msgs::MarkerArray msg;
-        // BLUE Color for Borders
-        msg.markers.push_back(createMarker(border, 0, 0.0, 0.0, 1.0, "border"));
-        borders_pub_.publish(msg);
-    }
-
-private:
+    // Helper method MUST be defined before it is used, or declared here
     visualization_msgs::Marker createMarker(const Obstacle& obs, int id, float r, float g, float b, std::string ns) {
         visualization_msgs::Marker marker;
         marker.header.frame_id = "map"; 
@@ -56,10 +30,12 @@ private:
         if (obs.getType() == Obstacle::POLYGON) {
             const auto& verts = obs.getVertices(); 
             for (const auto& v : verts) {
-                geometry_msgs::Point p; p.x = v.x; p.y = v.y; marker.points.push_back(p);
+                geometry_msgs::Point p; p.x = v.x; p.y = v.y; p.z = 0.0;
+                marker.points.push_back(p);
             }
             if (!verts.empty()) { // Close loop
-                geometry_msgs::Point p; p.x = verts[0].x; p.y = verts[0].y; marker.points.push_back(p);
+                geometry_msgs::Point p; p.x = verts[0].x; p.y = verts[0].y; p.z = 0.0;
+                marker.points.push_back(p);
             }
         } 
         else {
@@ -71,10 +47,65 @@ private:
                 geometry_msgs::Point p;
                 p.x = center.x + radius * cos(angle);
                 p.y = center.y + radius * sin(angle);
+                p.z = 0.0;
                 marker.points.push_back(p);
             }
         }
         return marker;
     }
-};
+
+public:
+    PlannerVisualizer() {
+        obstacles_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/obstacles", 1, true);
+        borders_pub_   = nh_.advertise<visualization_msgs::MarkerArray>("/planner/borders", 1, true);
+        roadmap_pub_   = nh_.advertise<visualization_msgs::Marker>("/planner/roadmap", 1, true);
+    } // Fixed constructor semicolon issue
+
+    void publishObstacles(const std::vector<Obstacle>& obstacles) {
+        visualization_msgs::MarkerArray msg;
+        int id = 0;
+        for (const auto& obs : obstacles) {
+            msg.markers.push_back(createMarker(obs, id++, 1.0, 0.0, 0.0, "obstacles"));
+        }
+        obstacles_pub_.publish(msg);
+    }
+
+    void publishBorders(const Obstacle& border) {
+        visualization_msgs::MarkerArray msg;
+        msg.markers.push_back(createMarker(border, 0, 0.0, 0.0, 1.0, "border"));
+        borders_pub_.publish(msg);
+    }
+
+    void publishRoadmap(const Roadmap& roadmap) {
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "roadmap";
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.scale.x = 0.02;
+        marker.color.r = 0.0; marker.color.g = 1.0; marker.color.b = 1.0; marker.color.a = 0.6;
+        marker.pose.orientation.w = 1.0;
+
+        const auto& nodes = roadmap.getNodes();
+        const auto edges = roadmap.getEdges();
+
+        for (const auto& edge : edges) {
+            if (nodes.count(edge.u) && nodes.count(edge.v)) {
+                geometry_msgs::Point p1, p2;
+                p1.x = nodes.at(edge.u).position.x();
+                p1.y = nodes.at(edge.u).position.y();
+                p1.z = 0.02;
+                p2.x = nodes.at(edge.v).position.x();
+                p2.y = nodes.at(edge.v).position.y();
+                p2.z = 0.02;
+                marker.points.push_back(p1);
+                marker.points.push_back(p2);
+            }
+        }
+        roadmap_pub_.publish(marker);
+    }
+}; // THE IMPORTANT SEMICOLON
+
 #endif

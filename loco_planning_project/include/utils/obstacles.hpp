@@ -134,6 +134,12 @@ public:
         return (inside && inflate_direction_ > 0) || // collision with obstacles (inside the inflated polygon)
             (!inside && inflate_direction_ < 0); // collision with borders (outside the inflated polygon)
     }
+
+    // Needed to get bbox of the ostacle
+    double getMinX() const { return aabb_min_.x; }
+    double getMaxX() const { return aabb_max_.x; }
+    double getMinY() const { return aabb_min_.y; }
+    double getMaxY() const { return aabb_max_.y; }
     
     // Getters
     const std::vector<Point2D>& getVertices() const { return c_space_polygon_; }

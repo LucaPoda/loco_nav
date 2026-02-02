@@ -35,6 +35,14 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /planner/roadmap
+      Name: Planner Roadmap
+      Namespaces:
+        roadmap: true
+      Queue Size: 100
+      Value: true
     - Alpha: 0.5
       Cell Size: 1
       Class: rviz/Grid

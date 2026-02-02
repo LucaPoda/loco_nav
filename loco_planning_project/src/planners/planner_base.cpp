@@ -50,6 +50,8 @@ void PlannerBase::initialize(const std::string& robot_name) {
 // Main Loop
 void PlannerBase::run() {
     ros::Rate rate(1.0 / params_.dt);
+    bool roadmap_built = false; // Global or class member
+    Roadmap roadmap;
 
     while (ros::ok()) {
         ros::spinOnce(); // Updates EnvironmentHandler callbacks
@@ -57,14 +59,22 @@ void PlannerBase::run() {
         // Check if we are ready to plan and haven't done so yet
         if (!path_computed_ && env_.isReady()) {
             
-            ROS_INFO("Environment Ready. Calling Plugin Logic...");
+            ROS_INFO_ONCE("Environment Ready. Calling Plugin Logic...");
 
 
             // Plan Geometric Path using a specific planner from plugin
-            Roadmap roadmap = buildRoadmap();
-
             
+            if (!roadmap_built) {
+                ROS_INFO("Building Roadmap...");
+                roadmap = buildRoadmap();
+                visualizer_.publishRoadmap(roadmap);
+                roadmap_built = true; // <--- This stops the infinite loop!
+                
+                // Now call your search algorithm
+                // path = planner->findPath(start, goal, roadmap);
+            }
 
+        
             // if (!geometric_path.empty()) {
             //     ROS_INFO("Path found with %lu waypoints. Generating trajectory...", geometric_path.size());
 
@@ -80,7 +90,7 @@ void PlannerBase::run() {
             //     ROS_WARN_THROTTLE(5, "Planner Plugin returned an empty path.");
             // }
         } else if (!env_.isReady()) {
-            ROS_INFO_THROTTLE(5, "Waiting for data...");
+            ROS_INFO_THROTTLE(5, "Waiting for data (Start, Goal, Borders, Obstacles)...");
         }
         
         rate.sleep();
