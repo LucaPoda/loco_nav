@@ -100,6 +100,12 @@ public:
         return border_obstacle_.getMaxY() - border_obstacle_.getMinY();
     }
 
+    // Add these to EnvironmentHandler public section
+    double getMinX() const { return border_obstacle_.getMinX(); }
+    double getMaxX() const { return border_obstacle_.getMaxX(); }
+    double getMinY() const { return border_obstacle_.getMinY(); }
+    double getMaxY() const { return border_obstacle_.getMaxY(); }
+
 private:
     // --- CALLBACKS ---
     

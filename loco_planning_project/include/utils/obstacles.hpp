@@ -135,7 +135,7 @@ public:
             (!inside && inflate_direction_ < 0); // collision with borders (outside the inflated polygon)
     }
 
-    // Needed to get bbox of the 
+    // Needed to get bbox of the ostacle
     double getMinX() const { return aabb_min_.x; }
     double getMaxX() const { return aabb_max_.x; }
     double getMinY() const { return aabb_min_.y; }

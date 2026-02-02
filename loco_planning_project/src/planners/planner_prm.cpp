@@ -37,10 +37,10 @@ Roadmap PlannerPRM::buildRoadmap() {
     ROS_INFO("PRM: Sampling %d nodes...", n_samples); 
     
     // Use the real boundaries
-    double min_x = env.getMapBorders().getMinX();
-    double max_x = env.getMapBorders().getMaxX();
-    double min_y = env.getMapBorders().getMinY();
-    double max_y = env.getMapBorders().getMaxY();
+    double min_x = env.getMinX();
+    double max_x = env.getMaxX();
+    double min_y = env.getMinY();
+    double max_y = env.getMaxY();
 
     std::uniform_real_distribution<double> dist_x(min_x, max_x);
     std::uniform_real_distribution<double> dist_y(min_y, max_y);
@@ -101,30 +101,24 @@ Roadmap PlannerPRM::buildRoadmap() {
 
 bool PlannerPRM::isCollisionFree(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2) {
     const auto& env = getEnvironment();
-    ROS_INFO("Checking points");
     
-    // SAFETY CHECK: Ensure resolution is valid
-    if(resolution <= 0.0){
-        resolution = 0.05;
-        ROS_INFO("Resolution set was not valid. Setting resolution to 0.05.");
-    }
+    // 1. Safety check for resolution
+    double res = (resolution <= 0.0) ? 0.05 : resolution;
     
     double dist = (p1 - p2).norm();
     if (dist < 0.001) return true;
 
-    int steps = std::max(1, static_cast<int>(dist / resolution));    
+    // 2. Line interpolation
+    int steps = std::max(1, static_cast<int>(dist / res));    
     for (int i = 0; i <= steps; ++i) {
         double ratio = static_cast<double>(i) / static_cast<double>(steps);
-        double x = p1.x() + (p2.x() - p1.x()) * ratio;
-        double y = p1.y() + (p2.y() - p1.y()) * ratio;
+        Eigen::Vector2d interpolated = p1 + ratio * (p2 - p1);
 
-        // --- ADD BOUNDS CHECKING HERE ---
-        if (x < 0 || x >= env.getMapWidth() || y < 0 || y >= env.getMapHeight()) {
-            return false; // Treat out-of-bounds as a collision
-        }
-
-        // Only call the env function if we are safely inside the map
-        if (env.checkOccupancy(x, y)) {
+        // REMOVED: if (x < 0 || x >= width...) 
+        // WHY: Your hexagon has negative coordinates. env.checkOccupancy
+        // already knows how to handle boundaries correctly!
+        
+        if (env.checkOccupancy(interpolated.x(), interpolated.y())) {
             return false;
         }
     }
