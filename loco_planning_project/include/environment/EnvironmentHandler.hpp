@@ -11,8 +11,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
-#include "utils/obstacles.hpp"
-#include "utils/planner_visualizer.hpp" // Include your visualizer
+#include "environemnt/Obstacles.hpp"
+#include "utils/PlannerVisualizer.hpp" // Include your visualizer
 
 struct VictimData {
     Eigen::Vector2d position;

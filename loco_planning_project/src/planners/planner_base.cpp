@@ -1,8 +1,6 @@
 #include "planners/planner_base.hpp"
 #include <tf2/utils.h> 
 
-#include "utils/dubins_ompl.hpp" 
-
 // INITIALIZATION
 void PlannerBase::initialize(const std::string& robot_name) {
     robot_name_ = robot_name;

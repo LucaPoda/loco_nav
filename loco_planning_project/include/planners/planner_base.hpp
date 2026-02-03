@@ -1,14 +1,17 @@
 #ifndef PLANNER_BASE_H
 #define PLANNER_BASE_H
 
-#include <ros/ros.h>
-#include <loco_planning/Reference.h>
-#include <Eigen/Dense>
-#include "utils/environment_handler.hpp"
-#include "utils/roadmap.hpp"
 #include <vector>
 #include <string>
-#include "utils/planner_visualizer.hpp"
+
+#include <ros/ros.h>
+#include <Eigen/Dense>
+
+#include <loco_planning/Reference.h>
+
+#include "environment/EnvironmentHandler.hpp"
+#include "environment/Roadmap.hpp"
+#include "utils/PlannerVisualizer.hpp"
 
 struct PlannerParams {
     double v_max;

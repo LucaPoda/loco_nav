@@ -3,8 +3,8 @@
 
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
-#include "utils/obstacles.hpp" 
-#include "utils/roadmap.hpp"
+#include "environemnt/Obstacles.hpp" 
+#include "environemnt/Roadmap.hpp"
 
 class PlannerVisualizer {
 private:
