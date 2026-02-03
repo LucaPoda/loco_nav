@@ -2,6 +2,8 @@
 #include <pluginlib/class_list_macros.h>
 #include <random>    // Required for std::default_random_engine
 #include <algorithm> // Required for std::sort and std::min
+#include <queue>
+#include <map>
 
 PlannerPRM::PlannerPRM() {}
 PlannerPRM::~PlannerPRM() {}
@@ -21,6 +23,7 @@ void PlannerPRM::initialize(const std::string& robot_name) {
 
 Roadmap PlannerPRM::buildRoadmap() {
     ROS_INFO("Initializing map parameters...");
+    this->special_ids.clear();
     Roadmap roadmap;
     // std::vector<geometry_msgs::Point> nodes;
 
@@ -61,7 +64,7 @@ Roadmap PlannerPRM::buildRoadmap() {
         }
     }
 
-    // 2. Add special nodes + connect neighbours
+    // 2. Add special nodes
     // 2.1 Get special nodes: start, goal and victims
     Eigen::Vector2d start_pos = env.getStartPose().head<2>();
     Eigen::Vector2d goal_pos = env.getGoalPose().head<2>();
@@ -72,20 +75,29 @@ Roadmap PlannerPRM::buildRoadmap() {
     int goal_id  = n_samples + 1;
     int victim_start_index = n_samples + 2; // first victim, start victims ID from here
 
-    // 2.3 Add to Roadmap + positions vector
+    // 2.3 Add to roadmap and to positions vector
+    ROS_INFO("Adding special nodes...");
+
+    // Start
     roadmap.addNode(start_id, start_pos, 0.0); // Start has 0 score
     node_positions.push_back(start_pos);
+    special_ids.push_back(start_id);
 
+    // Goal
     roadmap.addNode(goal_id, goal_pos, 0.0);   // Goal has 0 score
     node_positions.push_back(goal_pos);
+    special_ids.push_back(goal_id);
 
+    // Victims
     for (size_t i = 0; i < victims.size(); ++i) {
         int v_id = victim_start_index + i;
         // IMPORTANT: Score comes from the 'radius' field of the topic
         roadmap.addNode(v_id, victims[i].position, victims[i].reward); 
         node_positions.push_back(victims[i].position);
+        special_ids.push_back(victim_start_index + i);
     }
 
+    // 3. Connect neighbours
     ROS_INFO("Connetting nodes...");
     ROS_INFO("Found %zu positions...", node_positions.size());
     for (int i = 0; i < node_positions.size(); ++i) {
@@ -119,7 +131,8 @@ Roadmap PlannerPRM::buildRoadmap() {
         }
     }
 
-    ROS_INFO("Map ready.");
+    // 4. Return the roadmap
+    ROS_INFO("Roadmap ready.");
     return roadmap;
 }
 
@@ -147,6 +160,77 @@ bool PlannerPRM::isCollisionFree(const Eigen::Vector2d& p1, const Eigen::Vector2
         }
     }
     return true;
+}
+
+// Dijkstra using priority queue
+// 1. SIMPLE DIJKSTRA: Just returns a map of distances from 'start_id' to everyone else
+std::map<int, double> PlannerPRM::dijkstraDistances(int start_id, const Roadmap& roadmap) {
+    std::map<int, double> distances;
+    
+    // Initialize all distances to infinity
+    for (const auto& node_pair : roadmap.getNodes()) {
+        distances[node_pair.first] = std::numeric_limits<double>::infinity();
+    }
+    distances[start_id] = 0.0;
+
+    // Priority queue to always expand the closest node
+    using NodeDist = std::pair<double, int>;
+    std::priority_queue<NodeDist, std::vector<NodeDist>, std::greater<NodeDist>> pq;
+    pq.push({0.0, start_id});
+
+    while (!pq.empty()) {
+        double d = pq.top().first;
+        int u = pq.top().second;
+        pq.pop();
+
+        // If we found a longer path than we already have, skip it
+        if (d > distances[u]) continue;
+
+        for (const auto& edge : roadmap.getNeighbors(u)) {
+            if (distances[u] + edge.weight < distances[edge.to]) {
+                distances[edge.to] = distances[u] + edge.weight;
+                pq.push({distances[edge.to], edge.to});
+            }
+        }
+    }
+    return distances;
+}
+
+// 2. MATRIX COMPUTATION: Fills the NxN table
+std::map<int, std::map<int, double>> PlannerPRM::computeSpecialNodesMatrix(const Roadmap& roadmap) {
+    std::map<int, std::map<int, double>> cost_matrix;
+
+    // 1. Compute the matrix
+    for (int source : special_ids) {
+        std::map<int, double> results = dijkstraDistances(source, roadmap);
+        for (int target : special_ids) {
+            cost_matrix[source][target] = results[target];
+        }
+    }
+
+    // 2. Print Header (Target IDs)
+    std::stringstream ss;
+    ss << "\n--- DISTANCE MATRIX ---\nID\t| ";
+    for (int id : special_ids) ss << id << "\t| ";
+    ss << "\n-----------------------";
+
+    // 3. Print Rows
+    for (int row_id : special_ids) {
+        ss << "\n" << row_id << "\t| ";
+        for (int col_id : special_ids) {
+            double dist = cost_matrix[row_id][col_id];
+            
+            if (dist >= 1e9 || dist == std::numeric_limits<double>::infinity()) {
+                ss << "INF\t| ";
+            } else {
+                // Fixed precision for readability
+                ss << std::fixed << std::setprecision(2) << dist << "\t| ";
+            }
+        }
+    }
+    
+    ROS_INFO_STREAM(ss.str() << "\n-----------------------");
+    return cost_matrix;
 }
 
 PLUGINLIB_EXPORT_CLASS(PlannerPRM, PlannerBase)

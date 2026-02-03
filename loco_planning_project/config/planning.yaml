@@ -22,9 +22,9 @@ curvature_max: 1.0
 
 # --- Probabilistic Roadmap (PRM) ---
 prm:
-  n_samples: 250        # Number of random nodes to scatter
+  n_samples: 400        # Number of random nodes to scatter
   #connection_radius: 2.0   # Max distance to connect two nodes
-  k_neighbors: 10    # Max neighbors to check for connection
+  k_neighbors: 15    # Max neighbors to check for connection
   resolution: 0.05
 
 # --- Exact Cell Decomposition Planner ---
