@@ -33,7 +33,6 @@ public:
 
     void init(ros::NodeHandle& nh, const std::string& robot_name) {
         ros::NodeHandle pnh("~"); 
-        std::vector<VictimData> victims_;
 
         // 1. Load Parameters
         pnh.param<double>("robot_radius", robot_radius_, 0.2);
@@ -69,7 +68,7 @@ public:
     bool isReady() const {
         bool all_ready = map_borders_ready_ && goal_ready_ && start_ready_ && obstacles_ready_ && victims_ready_;
         if(all_ready){
-            ROS_INFO("Map borders, obstacles, victims, start and goal ready.");} 
+            ROS_INFO_ONCE("Map borders, obstacles, victims, start and goal ready.");} 
         else{
             ROS_INFO("Map borders, obstacles, victims, start and goal not ready yet.");
         }

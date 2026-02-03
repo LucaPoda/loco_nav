@@ -50,6 +50,7 @@ void PlannerBase::run() {
     ros::Rate rate(1.0 / params_.dt);
     bool roadmap_built = false; // Global or class member
     Roadmap roadmap;
+    std::map<int, std::map<int, double>> cost_matrix;
 
     while (ros::ok()) {
         ros::spinOnce(); // Updates EnvironmentHandler callbacks
@@ -64,15 +65,20 @@ void PlannerBase::run() {
             
             if (!roadmap_built) {
                 ROS_INFO("Building Roadmap...");
+
+                // 1. Generate the dense roadmap
                 roadmap = buildRoadmap();
                 visualizer_.publishRoadmap(roadmap);
                 roadmap_built = true; // <--- This stops the infinite loop!
                 
-                // Now call your search algorithm
-                // path = planner->findPath(start, goal, roadmap);
+                // 2. Compute the Cost Matrix (All-pairs Dijkstra for special nodes)
+                ROS_INFO("Computing Special Nodes Matrix...");
+                cost_matrix = computeSpecialNodesMatrix(roadmap);
+                //visualizer_.publishSpecialPaths(cost_matrix, roadmap);
+
+                ROS_INFO("Roadmap and High-Level Matrix ready.");
             }
 
-        
             // if (!geometric_path.empty()) {
             //     ROS_INFO("Path found with %lu waypoints. Generating trajectory...", geometric_path.size());
 

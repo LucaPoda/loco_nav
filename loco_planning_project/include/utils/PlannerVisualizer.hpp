@@ -12,6 +12,7 @@ private:
     ros::Publisher obstacles_pub_;
     ros::Publisher borders_pub_;
     ros::Publisher roadmap_pub_;
+    //ros::Publisher special_paths_pub_;
 
     // Helper method MUST be defined before it is used, or declared here
     visualization_msgs::Marker createMarker(const Obstacle& obs, int id, float r, float g, float b, std::string ns) {
@@ -59,6 +60,7 @@ public:
         obstacles_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/planner/obstacles", 1, true);
         borders_pub_   = nh_.advertise<visualization_msgs::MarkerArray>("/planner/borders", 1, true);
         roadmap_pub_   = nh_.advertise<visualization_msgs::Marker>("/planner/roadmap", 1, true);
+        //special_paths_pub_   = nh_.advertise<visualization_msgs::Marker>("/planner/special_paths", 1, true);
     } // Fixed constructor semicolon issue
 
     void publishObstacles(const std::vector<Obstacle>& obstacles) {
@@ -106,6 +108,48 @@ public:
         }
         roadmap_pub_.publish(marker);
     }
+
+    // void publishSpecialPaths(const std::map<int, std::map<int, double>>& cost_matrix, const Roadmap& roadmap) {
+    //     visualization_msgs::MarkerArray msg;
+    //     int marker_id = 0;
+
+    //     const auto& nodes = roadmap.getNodes();
+
+    //     for (auto const& [source, targets] : cost_matrix) {
+    //         for (auto const& [target, dist] : targets) {
+    //             // Only draw if a path exists and we haven't drawn the reverse already
+    //             if (dist < std::numeric_limits<double>::infinity() && source < target) {
+                    
+    //                 visualization_msgs::Marker path_marker;
+    //                 path_marker.header.frame_id = "map";
+    //                 path_marker.header.stamp = ros::Time::now();
+    //                 path_marker.ns = "special_links";
+    //                 path_marker.id = marker_id++;
+    //                 path_marker.type = visualization_msgs::Marker::LINE_LIST;
+    //                 path_marker.scale.x = 0.04; // Medium thickness
+    //                 path_marker.color.r = 0.6; path_marker.color.g = 0.0; path_marker.color.b = 1.0; // Purple
+    //                 path_marker.color.a = 0.8;
+
+    //                 // For the "high-level" view, we can just draw straight lines between 
+    //                 // the special nodes, OR call findShortestPath to get the actual curves.
+    //                 // Let's draw straight lines for the "Abstract Graph" view:
+    //                 geometry_msgs::Point p1, p2;
+    //                 p1.x = nodes.at(source).position.x();
+    //                 p1.y = nodes.at(source).position.y();
+    //                 p1.z = 0.1; // Float above roadmap
+                    
+    //                 p2.x = nodes.at(target).position.x();
+    //                 p2.y = nodes.at(target).position.y();
+    //                 p2.z = 0.1;
+
+    //                 path_marker.points.push_back(p1);
+    //                 path_marker.points.push_back(p2);
+    //                 msg.markers.push_back(path_marker);
+    //             }
+    //         }
+    //     }
+    //     special_paths_pub_.publish(msg);
+    // }
 }; // THE IMPORTANT SEMICOLON
 
 #endif
