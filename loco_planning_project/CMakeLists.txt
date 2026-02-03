@@ -25,11 +25,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   loco_planning     
   obstacles_msgs
-
   pluginlib
   roslib
 )
 
+# Find Eigen3 (required for Roadmap and Environment logic)
+find_package(Eigen3 REQUIRED)
 find_package(ompl REQUIRED)
 
 ## ------------------------------------------------ ##
@@ -42,11 +43,11 @@ catkin_package(
   CATKIN_DEPENDS roscpp geometry_msgs obstacles_msgs loco_planning
 )
 
-# Add Includes (Fixes "No such file" errors)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OMPL_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   ${clipper2_SOURCE_DIR}/CPP/Clipper2Lib/include
 )
 
@@ -54,25 +55,39 @@ include_directories(
 ##            LIBRARY (The Planners)                ##
 ## ------------------------------------------------ ##
 
-# DIRECTLY COMPILE CLIPPER SOURCES
-# This fixes "cannot find -lClipper2" by building it inside your lib
+# Helper for Clipper2 compilation
 set(CLIPPER_SOURCES
   ${clipper2_SOURCE_DIR}/CPP/Clipper2Lib/src/clipper.engine.cpp
   ${clipper2_SOURCE_DIR}/CPP/Clipper2Lib/src/clipper.offset.cpp
   ${clipper2_SOURCE_DIR}/CPP/Clipper2Lib/src/clipper.rectclip.cpp
 )
 
+# ADD ALL NEW SOURCE FILES HERE
 add_library(planner_lib
+  # Environment logic
+  src/environment/Obstacle.cpp
+  src/environment/Roadmap.cpp
+  src/environment/EnvironmentHandler.cpp
+  
+  # Orienteering logic
+  src/orienteering/DistanceMatrix.cpp
+  src/orienteering/Orienteering.cpp
+  
+  # Trajectory logic
+  src/trajectory/Smoothing.cpp
+  src/trajectory/DubinsTrajectory.cpp
+  
+  # Planner Logic
   src/planners/planner_base.cpp
   src/planners/planner_prm.cpp
   src/planners/planner_ecd.cpp
-  ${CLIPPER_SOURCES}  # <--- Compiling Clipper here!
+
+  ${CLIPPER_SOURCES}
 )
 
 target_link_libraries(planner_lib
   ${catkin_LIBRARIES}
   ${OMPL_LIBRARIES}
-  # Clipper2 link removed (built-in now)
 )
 
 add_dependencies(planner_lib 
@@ -96,27 +111,21 @@ target_link_libraries(planner_node
 ##            INSTALL RULES                         ##
 ## ------------------------------------------------ ##
 
-# 1. Install the Library (This is what you are missing!)
 install(TARGETS planner_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-# 2. Install the Executable (You likely already added this)
 install(TARGETS planner_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-# 3. Install Directories (Launch/Config)
 install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-  PATTERN ".svn" EXCLUDE)
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
 
 install(DIRECTORY config/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-  PATTERN ".svn" EXCLUDE)
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config)
 
 install(DIRECTORY rviz/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
-  PATTERN ".svn" EXCLUDE)
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz)

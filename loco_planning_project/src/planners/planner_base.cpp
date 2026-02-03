@@ -58,8 +58,7 @@ void PlannerBase::run() {
         // Check if we are ready to plan and haven't done so yet
         if (!path_computed_ && env_.isReady()) {
             
-            ROS_INFO_ONCE("Environment Ready. Calling Plugin Logic...");
-
+            ROS_INFO_ONCE("Environment Ready. Calling Planner Logic...");
 
             // Plan Geometric Path using a specific planner from plugin
             
@@ -68,31 +67,49 @@ void PlannerBase::run() {
 
                 // 1. Generate the dense roadmap
                 roadmap = buildRoadmap();
-                visualizer_.publishRoadmap(roadmap);
                 roadmap_built = true; // <--- This stops the infinite loop!
                 
                 // 2. Compute the Cost Matrix (All-pairs Dijkstra for special nodes)
                 ROS_INFO("Computing Special Nodes Matrix...");
-                cost_matrix = computeSpecialNodesMatrix(roadmap);
-                //visualizer_.publishSpecialPaths(cost_matrix, roadmap);
+                
+                // 3. Build Distance Matrix from roadmap
+                DistanceMatrix distance_matrix(roadmap, special_ids);
+
+                ROS_INFO_STREAM(distance_matrix.display().str() << "\n-----------------------");
+
+                // 4. Build a simplified roadmap with only the shortest paths
+                Roadmap simplified_roadmap = distance_matrix.buildShortestPathsRoadmap();
+
+                // 5: Plan the best sequence of victims to visit on the simplified roadmap
+                double T_MAX = 400; // TODO: move to config
+                std::vector<int> node_sequence = OrienteeringPlanner::plan(simplified_roadmap, special_ids[0], special_ids[1], T_MAX);
+
+                // 6: Reconstruct the full path from the victims sequence
+                std::vector<int> full_path = distance_matrix.getFullPath(node_sequence);
+
+                // 7: Compute a smoothed trajectory using short cutting
+                double MAX_SHORTCUT_DISTANCE = 1; // TODO: move this to config
+                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, MAX_SHORTCUT_DISTANCE);
+
+                // 8: Compute the Dubins trajectory from the smoothed path
+                double MIN_RADIUS = 0.4; // TODO: move to config 
+                double STEP_SIZE = 0.05; // TODO: move to config
+                std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, MIN_RADIUS, STEP_SIZE);
+
+                // 9: Compute the final reference trajectory from the Dubins path
+                auto reference_traj = computeReferenceFromPath(dubins_trajectory);
+
+                // 10. Publish the reference trajectory
+                publishReference(reference_traj);
+
+                visualizer_.publishRoadmap(roadmap);
+                visualizer_.publishDistanceMatrix(simplified_roadmap, distance_matrix);
+                visualizer_.publishOrienteeringPath(roadmap, full_path);
+                visualizer_.publishSmoothedPath(roadmap, smoothed_path);
+                visualizer_.publishDubinsTrajectory(dubins_trajectory);
 
                 ROS_INFO("Roadmap and High-Level Matrix ready.");
             }
-
-            // if (!geometric_path.empty()) {
-            //     ROS_INFO("Path found with %lu waypoints. Generating trajectory...", geometric_path.size());
-
-
-            //     // Compute reference trajectory from the geometric path
-            //     auto reference_traj = computeReferenceFromPath(geometric_path);
-
-            //     // Publish the trajectory to the topic
-            //     publishReference(reference_traj);
-                
-            //     path_computed_ = true; // Stop planning (One-shot mission)
-            // } else {
-            //     ROS_WARN_THROTTLE(5, "Planner Plugin returned an empty path.");
-            // }
         } else if (!env_.isReady()) {
             ROS_INFO_THROTTLE(5, "Waiting for data (Start, Goal, Borders, Obstacles)...");
         }
@@ -101,59 +118,45 @@ void PlannerBase::run() {
     }
 }
 
-// converts the geometric trajectory to the reference trajectory
-std::vector<loco_planning::Reference> PlannerBase::computeReferenceFromPath(const std::vector<Eigen::Vector3d>& path) {
+std::vector<loco_planning::Reference> PlannerBase::computeReferenceFromPath(const std::vector<TrajectoryPoint>& dubins_trajectory) {
     std::vector<loco_planning::Reference> full_reference;
     
-    if (path.size() < 2) return full_reference;
+    // Need at least two points to calculate angular velocity
+    if (dubins_trajectory.size() < 2) return full_reference;
 
-    double step_size_meters = params_.v_max * params_.dt;
+    for (size_t i = 0; i < dubins_trajectory.size(); ++i) {
+        loco_planning::Reference ref;
+        
+        // 1. Assign Position and Heading
+        ref.x_d = dubins_trajectory[i].x;
+        ref.y_d = dubins_trajectory[i].y;
+        ref.theta_d = dubins_trajectory[i].theta; 
+        
+        // 2. Assign Constant Linear Velocity
+        ref.v_d = params_.v_max;
 
-    // Iterate through waypoints
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        Eigen::Vector3d start = path[i];
-        Eigen::Vector3d goal = path[i+1];
+        // 3. Calculate Angular Velocity (Omega) via Finite Difference
+        if (i < dubins_trajectory.size() - 1) {
+            double next_theta = dubins_trajectory[i+1].theta;
+            double curr_theta = dubins_trajectory[i].theta;
+            double d_theta = next_theta - curr_theta;
 
-        // Generate Dubins curve points
-        std::vector<Eigen::Vector3d> dubins_points = DubinsGenerator::getPath(
-            start, 
-            goal, 
-            params_.curvature_max, 
-            step_size_meters
-        );
+            // Normalize angle difference to [-PI, PI] to handle wrap-around
+            while (d_theta > M_PI) d_theta -= 2.0 * M_PI;
+            while (d_theta < -M_PI) d_theta += 2.0 * M_PI;
 
-        for (size_t j = 0; j < dubins_points.size(); ++j) {
-            // Avoid duplicate points at joints
-            if (i > 0 && j == 0) continue;
-
-            loco_planning::Reference ref;
-            ref.x_d = dubins_points[j].x();
-            ref.y_d = dubins_points[j].y();
-            ref.theta_d = dubins_points[j].z(); 
-            ref.v_d = params_.v_max;
-
-            // Calculate Omega (Feedforward)
-            if (j < dubins_points.size() - 1) {
-                double next_theta = dubins_points[j+1].z();
-                double curr_theta = dubins_points[j].z();
-                double d_theta = next_theta - curr_theta;
-
-                // Normalize angle
-                while (d_theta > M_PI) d_theta -= 2.0 * M_PI;
-                while (d_theta < -M_PI) d_theta += 2.0 * M_PI;
-
-                ref.omega_d = d_theta / params_.dt;
+            // Omega = delta_theta / delta_t
+            ref.omega_d = d_theta / params_.dt;
+        } else {
+            // Last point: Maintain the previous omega or set to zero
+            if (!full_reference.empty()) {
+                ref.omega_d = full_reference.back().omega_d;
             } else {
-                // Last point of segment
-                if (!full_reference.empty()) {
-                    ref.omega_d = full_reference.back().omega_d;
-                } else {
-                    ref.omega_d = 0.0;
-                }
+                ref.omega_d = 0.0;
             }
-
-            full_reference.push_back(ref);
         }
+
+        full_reference.push_back(ref);
     }
     
     return full_reference;
@@ -177,3 +180,4 @@ void PlannerBase::publishReference(const std::vector<loco_planning::Reference>& 
     
     ROS_INFO("Trajectory publication finished.");
 }
+

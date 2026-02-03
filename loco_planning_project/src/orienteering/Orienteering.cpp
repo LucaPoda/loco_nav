@@ -1,119 +1,94 @@
-// Orienteering.cpp
 #include "orienteering/Orienteering.hpp"
-#include "ortools/linear_solver/linear_solver.h"
-#include <map>
+
+#include <algorithm>
 #include <set>
 
-using namespace operations_research;
+std::vector<int> OrienteeringPlanner::plan(const Roadmap& simple_roadmap, int start_id, int end_id, double T_max) {
+    const auto& nodes = simple_roadmap.getNodes();
+    std::vector<int> current_path = {start_id, end_id};
+    double current_dist = simple_roadmap.getNeighbors(start_id).at(0).weight; // Assuming direct edge exists
 
-std::vector<int> OrienteeringPlanner::plan(const Roadmap& roadmap, int start_id, int end_id, double T_max) {
-    using namespace operations_research;
-    std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("SCIP"));
-    if (!solver) return {};
-
-    const auto& nodes = roadmap.getNodes();
-    Eigen::Vector2d start_pos = nodes.at(start_id).position;
-    Eigen::Vector2d end_pos = nodes.at(end_id).position;
-
-    // --- 1. PRE-SOLVE PRUNING (Ellipse Heuristic) ---
-    // Remove nodes that are mathematically impossible to visit
-    std::set<int> valid_ids;
+    // 1. GREEDY INSERTION
+    std::set<int> unvisited;
     for (auto const& [id, node] : nodes) {
-        double min_dist = (node.position - start_pos).norm() + (end_pos - node.position).norm();
-        if (min_dist <= T_max) {
-            valid_ids.insert(id);
+        if (id != start_id && id != end_id) unvisited.insert(id);
+    }
+
+    bool improved = true;
+    while (improved) {
+        improved = false;
+        int best_node = -1;
+        int best_pos = -1;
+        double best_efficiency = -1.0;
+
+        for (int candidate : unvisited) {
+            for (size_t i = 0; i < current_path.size() - 1; ++i) {
+                int u = current_path[i];
+                int v = current_path[i+1];
+
+                // Calculate added distance if we insert candidate between u and v
+                double dist_u_c = getEdgeWeight(simple_roadmap, u, candidate);
+                double dist_c_v = getEdgeWeight(simple_roadmap, candidate, v);
+                double dist_u_v = getEdgeWeight(simple_roadmap, u, v);
+                double added_dist = dist_u_c + dist_c_v - dist_u_v;
+
+                if (current_dist + added_dist <= T_max) {
+                    double efficiency = nodes.at(candidate).score / (added_dist + 0.001);
+                    if (efficiency > best_efficiency) {
+                        best_efficiency = efficiency;
+                        best_node = candidate;
+                        best_pos = i + 1;
+                    }
+                }
+            }
+        }
+
+        if (best_node != -1) {
+            current_path.insert(current_path.begin() + best_pos, best_node);
+            unvisited.erase(best_node);
+            current_dist = calculatePathDist(simple_roadmap, current_path);
+            improved = true;
         }
     }
-    int N = valid_ids.size();
 
-    // --- 2. SOLVER CONFIGURATION ---
-    // Set Relative Gap to 5% (Stops the solver once it's "close enough")
-    MPSolverParameters params;
-    params.SetDoubleParam(MPSolverParameters::RELATIVE_MIP_GAP, 0.05);
-    
-    // Safety timeout of 1 second
-    solver->set_time_limit(5000);
+    // 2. 2-OPT LOCAL SEARCH (Optimize sequence to potentially fit more nodes)
+    optimize2Opt(simple_roadmap, current_path);
 
-    // --- 3. VARIABLES ---
-    std::map<int, MPVariable*> x; 
-    std::map<int, std::map<int, MPVariable*>> e; 
-    std::map<int, MPVariable*> u; 
+    return current_path;
+}
 
-    for (int id : valid_ids) {
-        x[id] = solver->MakeIntVar(0.0, 1.0, "x_" + std::to_string(id));
-        
-        // TIGHTENED MTZ BOUNDS: Start is 1, others are [2, N]
-        if (id == start_id) u[id] = solver->MakeNumVar(1.0, 1.0, "u_" + std::to_string(id));
-        else u[id] = solver->MakeNumVar(2.0, (double)N, "u_" + std::to_string(id));
+// Helper to safely get edge weight from the adjacency list
+double OrienteeringPlanner::getEdgeWeight(const Roadmap& roadmap, int u, int v) {
+    for (const auto& edge : roadmap.getNeighbors(u)) {
+        if (edge.to == v) return edge.weight;
+    }
+    return 1e9; // Infinity
+}
 
-        for (const auto& edge : roadmap.getNeighbors(id)) {
-            if (valid_ids.count(edge.to)) {
-                e[id][edge.to] = solver->MakeIntVar(0.0, 1.0, "e_" + std::to_string(id) + "_" + std::to_string(edge.to));
+double OrienteeringPlanner::calculatePathDist(const Roadmap& roadmap, const std::vector<int>& path) {
+    double total = 0;
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        total += getEdgeWeight(roadmap, path[i], path[i+1]);
+    }
+    return total;
+}
+
+void OrienteeringPlanner::optimize2Opt(const Roadmap& roadmap, std::vector<int>& path) {
+    if (path.size() < 4) return;
+    bool improved = true;
+    while (improved) {
+        improved = false;
+        for (size_t i = 1; i < path.size() - 2; ++i) {
+            for (size_t j = i + 1; j < path.size() - 1; ++j) {
+                // Try reversing the segment between i and j
+                double old_dist = getEdgeWeight(roadmap, path[i-1], path[i]) + getEdgeWeight(roadmap, path[j], path[j+1]);
+                double new_dist = getEdgeWeight(roadmap, path[i-1], path[j]) + getEdgeWeight(roadmap, path[i], path[j+1]);
+                
+                if (new_dist < old_dist) {
+                    std::reverse(path.begin() + i, path.begin() + j + 1);
+                    improved = true;
+                }
             }
         }
     }
-
-    // --- 4. CONSTRAINTS ---
-    solver->MakeRowConstraint(1.0, 1.0)->SetCoefficient(x[start_id], 1.0);
-    solver->MakeRowConstraint(1.0, 1.0)->SetCoefficient(x[end_id], 1.0);
-
-    for (int i : valid_ids) {
-        MPConstraint* flow = solver->MakeRowConstraint(0.0, 0.0);
-        for (auto const& [to_id, var] : e[i]) flow->SetCoefficient(var, 1.0); // Out
-        for (int prev_id : valid_ids) {
-            if (e[prev_id].count(i)) flow->SetCoefficient(e[prev_id][i], -1.0); // In
-        }
-
-        if (i == start_id) flow->SetBounds(1.0, 1.0);
-        else if (i == end_id) flow->SetBounds(-1.0, -1.0);
-        else {
-            // Visit Constraint: If visited (x[i]=1), flow must balance. 
-            // If not visited (x[i]=0), no flow allowed.
-            MPConstraint* visit = solver->MakeRowConstraint(0.0, 0.0);
-            visit->SetCoefficient(x[i], -1.0);
-            for (auto const& [to_id, var] : e[i]) visit->SetCoefficient(var, 1.0);
-        }
-
-        // Subtour Elimination
-        for (auto const& [j, edge_var] : e[i]) {
-            if (j == start_id) continue;
-            MPConstraint* mtz = solver->MakeRowConstraint(-MPSolver::infinity(), (double)N - 1);
-            mtz->SetCoefficient(u[i], 1.0);
-            mtz->SetCoefficient(u[j], -1.0);
-            mtz->SetCoefficient(edge_var, (double)N);
-        }
-    }
-
-    // Budget
-    MPConstraint* budget = solver->MakeRowConstraint(0.0, T_max);
-    for (int i : valid_ids) {
-        for (const auto& edge : roadmap.getNeighbors(i)) {
-            if (e[i].count(edge.to)) budget->SetCoefficient(e[i][edge.to], edge.weight);
-        }
-    }
-
-    // --- 5. OBJECTIVE ---
-    MPObjective* const obj = solver->MutableObjective();
-    for (int id : valid_ids) obj->SetCoefficient(x[id], nodes.at(id).score);
-    obj->SetMaximization();
-
-    solver->Solve(params); // Pass the parameters here
-
-    // --- 6. EXTRACTION ---
-    std::vector<int> path;
-    int curr = start_id;
-    path.push_back(curr);
-    while (curr != end_id) {
-        bool found = false;
-        for (auto const& [next_id, var] : e[curr]) {
-            if (var->solution_value() > 0.5) {
-                curr = next_id;
-                path.push_back(curr);
-                found = true;
-                break;
-            }
-        }
-        if (!found) break;
-    }
-    return path;
 }

@@ -11,6 +11,10 @@
 
 #include "environment/EnvironmentHandler.hpp"
 #include "environment/Roadmap.hpp"
+#include "orienteering/DistanceMatrix.hpp"
+#include "orienteering/Orienteering.hpp"
+#include "trajectory/Smoothing.hpp"
+#include "trajectory/DubinsTrajectory.hpp"
 #include "utils/PlannerVisualizer.hpp"
 
 struct PlannerParams {
@@ -44,13 +48,15 @@ protected:
     virtual Roadmap buildRoadmap() = 0;
 
     // Compute matrix with dijkstra
-    virtual std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) = 0;   
+    // virtual std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) = 0;   
     
     ros::Publisher roadmap_pub_;
     // Generic function to visualize any roadmap graph
     //void visualizeRoadmap(const Roadmap& roadmap);
 
     PlannerVisualizer visualizer_;
+
+    std::vector<int> special_ids; // TODO: move special ids logic from PRM to planner-base and move this to private
 
 private:
     // Environment data form ROS:
@@ -69,7 +75,7 @@ private:
     bool path_computed_;
 
     // Converts geometric waypoints into a dense, timed trajectory.
-    std::vector<loco_planning::Reference> computeReferenceFromPath(const std::vector<Eigen::Vector3d>& path);
+    std::vector<loco_planning::Reference> computeReferenceFromPath(const std::vector<TrajectoryPoint>& path);
     
     // Publishes the trajectory to the reference topic.
     void publishReference(const std::vector<loco_planning::Reference>& reference);

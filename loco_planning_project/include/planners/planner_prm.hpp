@@ -27,8 +27,6 @@ private:
     int k_neighbors;
     double resolution;
 
-    std::vector<int> special_ids;
-
     // Helpers
     // Using Eigen for internal planning logic is significantly more efficient than geometry_msgs::Point
     bool isCollisionFree(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2);     
@@ -37,7 +35,7 @@ private:
     std::map<int, double> dijkstraDistances(int start_id, const Roadmap& roadmap);
 
     // NxN distance matrix for special nodes
-    std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) override;
+    // std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) override;
 };
 #endif
 
