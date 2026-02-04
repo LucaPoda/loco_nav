@@ -5,7 +5,7 @@
   <arg name="use_rviz" default="true" />
   <arg name="victims_activated" default="true" /> 
   <arg name="generate_new_config" default="true" />
-  <arg name="start_controller" default="false" /> 
+  <arg name="start_controller" default="true" /> 
   <arg name="debug" default="false" />
 
   <arg name="world_name" default="empty.world" />
