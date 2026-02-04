@@ -31,6 +31,11 @@ void PlannerBase::initialize(const std::string& robot_name) {
     pnh.param<double>("v_max", params_.v_max, 0.5);
     pnh.param<double>("curvature_max", params_.curvature_max, 1.0);
 
+    pnh.param<double>("t_max", params_.t_max, 400.0);
+    pnh.param<double>("max_shortcut_distance", params_.max_shortcut_distance, 1.0);
+    pnh.param<double>("min_radius", params_.min_radius, 0.4);
+    pnh.param<double>("step_size", params_.step_size, 0.05);
+
     // Setup publishers
     std::string ref_topic = "/" + robot_name_ + "/ref";
     ref_pub_ = nh.advertise<loco_planning::Reference>(ref_topic, 10);
@@ -39,9 +44,13 @@ void PlannerBase::initialize(const std::string& robot_name) {
     ROS_INFO("------------------------------------------------");
     ROS_INFO("  PLANNER CONFIGURATION");
     ROS_INFO("------------------------------------------------");
-    ROS_INFO("  DT:             %.4f s", params_.dt);
-    ROS_INFO("  V Max:          %.2f m/s", params_.v_max);
-    ROS_INFO("  Curvature Max:  %.2f", params_.curvature_max);
+    ROS_INFO("  DT:                    %.4f s", params_.dt);
+    ROS_INFO("  V Max:                 %.2f m/s", params_.v_max);
+    ROS_INFO("  Curvature Max:         %.2f", params_.curvature_max);
+    ROS_INFO("  t_max:                 %.2f", params_.t_max);
+    ROS_INFO("  max_shortcut_distance: %.2f", params_.max_shortcut_distance);
+    ROS_INFO("  min_radius:            %.2f", params_.min_radius);
+    ROS_INFO("  step_size:             %.2f", params_.step_size);
     ROS_INFO("------------------------------------------------");
 }
 
@@ -72,6 +81,11 @@ void PlannerBase::run() {
                 // 2. Compute the Cost Matrix (All-pairs Dijkstra for special nodes)
                 ROS_INFO("Computing Special Nodes Matrix...");
                 
+                // Initialize special_ids
+                for (size_t i=0; i<env_.getVictims().size()+2; i++) {
+                    special_ids.push_back(i);
+                }
+
                 // 3. Build Distance Matrix from roadmap
                 DistanceMatrix distance_matrix(roadmap, special_ids);
 
@@ -81,20 +95,16 @@ void PlannerBase::run() {
                 Roadmap simplified_roadmap = distance_matrix.buildShortestPathsRoadmap();
 
                 // 5: Plan the best sequence of victims to visit on the simplified roadmap
-                double T_MAX = 400; // TODO: move to config
-                std::vector<int> node_sequence = OrienteeringPlanner::plan(simplified_roadmap, special_ids[0], special_ids[1], T_MAX);
+                std::vector<int> node_sequence = OrienteeringPlanner::plan(simplified_roadmap, special_ids[0], special_ids[1], params_.t_max);
 
                 // 6: Reconstruct the full path from the victims sequence
                 std::vector<int> full_path = distance_matrix.getFullPath(node_sequence);
 
                 // 7: Compute a smoothed trajectory using short cutting
-                double MAX_SHORTCUT_DISTANCE = 1; // TODO: move this to config
-                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, MAX_SHORTCUT_DISTANCE);
+                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, params_.max_shortcut_distance);
 
                 // 8: Compute the Dubins trajectory from the smoothed path
-                double MIN_RADIUS = 0.4; // TODO: move to config 
-                double STEP_SIZE = 0.05; // TODO: move to config
-                std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, MIN_RADIUS, STEP_SIZE);
+                std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, params_.min_radius, params_.step_size);
 
                 // 9: Compute the final reference trajectory from the Dubins path
                 auto reference_traj = computeReferenceFromPath(dubins_trajectory);

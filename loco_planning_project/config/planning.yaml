@@ -19,6 +19,10 @@ v_max: 0.5
 # curvature_max = 1.0 means Min Turning Radius = 1.0m
 curvature_max: 1.0 
 
+max_shortcut_distance: 1
+min_radius: 0.4
+step_size: 0.05
+t_max: 400
 
 # --- Probabilistic Roadmap (PRM) ---
 prm:

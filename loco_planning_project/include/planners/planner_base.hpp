@@ -21,7 +21,12 @@ struct PlannerParams {
     double v_max;
     double curvature_max;
     double dt;
-    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01) {}
+
+    double t_max;
+    double max_shortcut_distance;
+    double min_radius;
+    double step_size;
+    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), max_shortcut_distance(1), min_radius(0.4), step_size(0.05) {}
 };
 
 class PlannerBase {
@@ -56,8 +61,6 @@ protected:
 
     PlannerVisualizer visualizer_;
 
-    std::vector<int> special_ids; // TODO: move special ids logic from PRM to planner-base and move this to private
-
 private:
     // Environment data form ROS:
     EnvironmentHandler env_;
@@ -79,6 +82,8 @@ private:
     
     // Publishes the trajectory to the reference topic.
     void publishReference(const std::vector<loco_planning::Reference>& reference);
+
+    std::vector<int> special_ids; // [0, n_victims+2)
 };
 
 #endif // PLANNER_BASE_H

@@ -23,7 +23,6 @@ void PlannerPRM::initialize(const std::string& robot_name) {
 
 Roadmap PlannerPRM::buildRoadmap() {
     ROS_INFO("Initializing map parameters...");
-    this->special_ids.clear();
     Roadmap roadmap;
     // std::vector<geometry_msgs::Point> nodes;
 
@@ -35,15 +34,45 @@ Roadmap PlannerPRM::buildRoadmap() {
     // We keep a local vector of positions to make distance checking easy
     std::vector<Eigen::Vector2d> node_positions;
 
-    
-    // 1. Random Sampling
-    ROS_INFO("PRM: Sampling %d nodes...", n_samples); 
-    
     // Use the real boundaries
     double min_x = env.getMinX();
     double max_x = env.getMaxX();
     double min_y = env.getMinY();
     double max_y = env.getMaxY();
+
+    // 1. Add special nodes
+    // 1.1 Get special nodes: start, goal and victims
+    Eigen::Vector2d start_pos = env.getStartPose().head<2>();
+    Eigen::Vector2d goal_pos = env.getGoalPose().head<2>();
+    const auto& victims = env.getVictims();
+
+    // 1.2 Define IDs (high to avoid overlap with random nodes' IDs)
+    int start_id = 0;
+    int goal_id  = 1;
+    int victim_start_index = 2; // first victim, start victims ID from here
+
+    // 1.3 Add to roadmap and to positions vector
+    ROS_INFO("Adding special nodes...");
+
+    // Start
+    roadmap.addNode(start_id, start_pos, 0.0); // Start has 0 score
+    node_positions.push_back(start_pos);
+
+    // Goal
+    roadmap.addNode(goal_id, goal_pos, 0.0);   // Goal has 0 score
+    node_positions.push_back(goal_pos);
+
+    // Victims
+    for (size_t i = 0; i < victims.size(); ++i) {
+        int v_id = victim_start_index + i;
+        // IMPORTANT: Score comes from the 'radius' field of the topic
+        roadmap.addNode(v_id, victims[i].position, victims[i].reward); 
+        node_positions.push_back(victims[i].position);
+    }
+
+    
+    // 2. Random Sampling
+    ROS_INFO("PRM: Sampling %d nodes...", n_samples); 
 
     std::uniform_real_distribution<double> dist_x(min_x, max_x);
     std::uniform_real_distribution<double> dist_y(min_y, max_y);
@@ -62,39 +91,6 @@ Roadmap PlannerPRM::buildRoadmap() {
             roadmap.addNode(current_id, pos, 0.0); 
             node_positions.push_back(pos);
         }
-    }
-
-    // 2. Add special nodes
-    // 2.1 Get special nodes: start, goal and victims
-    Eigen::Vector2d start_pos = env.getStartPose().head<2>();
-    Eigen::Vector2d goal_pos = env.getGoalPose().head<2>();
-    const auto& victims = env.getVictims();
-
-    // 2.2 Define IDs (high to avoid overlap with random nodes' IDs)
-    int start_id = n_samples;
-    int goal_id  = n_samples + 1;
-    int victim_start_index = n_samples + 2; // first victim, start victims ID from here
-
-    // 2.3 Add to roadmap and to positions vector
-    ROS_INFO("Adding special nodes...");
-
-    // Start
-    roadmap.addNode(start_id, start_pos, 0.0); // Start has 0 score
-    node_positions.push_back(start_pos);
-    special_ids.push_back(start_id);
-
-    // Goal
-    roadmap.addNode(goal_id, goal_pos, 0.0);   // Goal has 0 score
-    node_positions.push_back(goal_pos);
-    special_ids.push_back(goal_id);
-
-    // Victims
-    for (size_t i = 0; i < victims.size(); ++i) {
-        int v_id = victim_start_index + i;
-        // IMPORTANT: Score comes from the 'radius' field of the topic
-        roadmap.addNode(v_id, victims[i].position, victims[i].reward); 
-        node_positions.push_back(victims[i].position);
-        special_ids.push_back(victim_start_index + i);
     }
 
     // 3. Connect neighbours
