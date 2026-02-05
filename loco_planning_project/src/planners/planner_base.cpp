@@ -38,7 +38,7 @@ void PlannerBase::initialize(const std::string& robot_name) {
 
     // Setup publishers
     std::string ref_topic = "/" + robot_name_ + "/ref";
-    ref_pub_ = nh.advertise<loco_planning::Reference>(ref_topic, 10);
+    ref_pub_ = nh.advertise<loco_planning::Reference>(ref_topic, 10, true);
 
     // Log Configuration
     ROS_INFO("------------------------------------------------");

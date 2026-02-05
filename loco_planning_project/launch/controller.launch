@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot_id" default="0" />
+    <arg name="debug" default="false" />
+
+    <group ns="limo$(arg robot_id)">
+        <node pkg="loco_planning" type="controller.py" name="controller" output="screen" 
+              args="--robot_id $(arg robot_id) --debug $(arg debug)"/>
+    </group>
+</launch>

@@ -27,7 +27,7 @@ def getInitialStateFromOdom(robot_name=None, timeout=5.0, max_retries=3):
             print(colored(
                 f"{robot_name}: Init. desired state from first /odom: "
                 f"x0: {p0.x}, y0: {p0.y}, yaw0: {yaw0}",
-                "red"
+                "blue"
             ))
 
             return p0.x, p0.y, yaw0

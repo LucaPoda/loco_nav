@@ -35,11 +35,12 @@ from utils.communication_utils import getInitialStateFromOdom
 
 class Controller():
 
-    def __init__(self, robot_name="limo1", debug=False):
+    def __init__(self, robot_name="limo0", debug=False):
         self.robot_name = robot_name
         self.DEBUG = debug
 
     def initVars(self):
+        self.first_ref_received = False
         self.basePoseW = np.zeros(6)
         self.baseTwistW = np.zeros(6)
         self.ctrl_v = 0.
@@ -121,7 +122,13 @@ class Controller():
                 self.des_theta, self.old_theta = unwrap_angle(self.des_theta, self.old_theta)
                 self.ctrl_v, self.ctrl_omega  = self.controller.control_unicycle(self.robot_state, self.time, self.des_x, self.des_y, self.des_theta, self.v_d, self.omega_d, False)
 
-                self.send_commands(self.ctrl_v, self.ctrl_omega)
+                if self.first_ref_received:
+                    # Run Lyapunov and send commands
+                    self.send_commands(self.ctrl_v, self.ctrl_omega)
+                else:
+                    # Robot stays safely parked
+                    self.send_commands(0., 0.)
+
                 self.logData()
                 # wait for synconization of the control loop
                 rate.sleep()
@@ -145,13 +152,15 @@ class Controller():
         #
         if msg.plan_finished:
             self.plotData()
+            self.first_ref_received = False # <-- Robot stops moving the moment the trajectory ends
         else:
             self.des_x = msg.x_d
             self.des_y = msg.y_d
             self.des_theta = msg.theta_d
             self.v_d = msg.v_d
             self.omega_d = msg.omega_d
-            print(colored(f"received {self.robot_name} des_x: {self.des_x}, des_y: {self.des_y}, des_theta: {self.des_theta}, des_v: {self.v_d}, des_omega: {self.omega_d}", "red"))
+            self.first_ref_received = True  # <--- The flag is now set!
+            print(colored(f"received {self.robot_name} des_x: {self.des_x}, des_y: {self.des_y}, des_theta: {self.des_theta}, des_v: {self.v_d}, des_omega: {self.omega_d}", "magenta"))
 
 
     def receive_pose(self, msg):
