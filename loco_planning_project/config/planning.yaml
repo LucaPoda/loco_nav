@@ -34,3 +34,7 @@ prm:
 # --- Exact Cell Decomposition Planner ---
 ecd:
   heuristic_weight: 1.0
+  quadtree_max_depth: 6
+  quadtree_min_size: 0.2
+  quadtree_samples_per_side: 7
+  k_victim_neighbors: 15
