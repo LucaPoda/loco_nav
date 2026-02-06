@@ -31,6 +31,7 @@ public:
     const Eigen::Vector3d& getStartPose() const { return start_pose_; }
     const Eigen::Vector3d& getGoalPose() const { return goal_pose_; }
     const std::vector<VictimData>& getVictims() const { return victims_; }    
+    const double getRobotRadius() const { return robot_radius_; }
     
     bool isReady() const;
     bool checkOccupancy(double x, double y) const;

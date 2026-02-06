@@ -77,6 +77,7 @@ void PlannerBase::run() {
                 // 1. Generate the dense roadmap
                 roadmap = buildRoadmap();
                 roadmap_built = true; // <--- This stops the infinite loop!
+                visualizer_.publishRoadmap(roadmap);
                 
                 // 2. Compute the Cost Matrix (All-pairs Dijkstra for special nodes)
                 ROS_INFO("Computing Special Nodes Matrix...");
@@ -93,18 +94,25 @@ void PlannerBase::run() {
 
                 // 4. Build a simplified roadmap with only the shortest paths
                 Roadmap simplified_roadmap = distance_matrix.buildShortestPathsRoadmap();
+                visualizer_.publishDistanceMatrix(simplified_roadmap, distance_matrix);
 
                 // 5: Plan the best sequence of victims to visit on the simplified roadmap
                 std::vector<int> node_sequence = OrienteeringPlanner::plan(simplified_roadmap, special_ids[0], special_ids[1], params_.t_max);
 
                 // 6: Reconstruct the full path from the victims sequence
                 std::vector<int> full_path = distance_matrix.getFullPath(node_sequence);
+                visualizer_.publishOrienteeringPath(roadmap, full_path);
 
                 // 7: Compute a smoothed trajectory using short cutting
-                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, params_.max_shortcut_distance);
+                // std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, params_.max_shortcut_distance);
+                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, env_.getRobotRadius() * 4);
+                visualizer_.publishSmoothedPath(roadmap, smoothed_path);
 
                 // 8: Compute the Dubins trajectory from the smoothed path
-                std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, params_.min_radius, params_.step_size);
+                std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, 
+                                                                                            params_.curvature_max, params_.step_size,
+                                                                                            env_.getStartPose().z(), env_.getGoalPose().z(), env_);
+                visualizer_.publishDubinsTrajectory(dubins_trajectory);
 
                 // 9: Compute the final reference trajectory from the Dubins path
                 auto reference_traj = computeReferenceFromPath(dubins_trajectory);
@@ -112,11 +120,8 @@ void PlannerBase::run() {
                 // 10. Publish the reference trajectory
                 publishReference(reference_traj);
 
-                visualizer_.publishRoadmap(roadmap);
-                visualizer_.publishDistanceMatrix(simplified_roadmap, distance_matrix);
-                visualizer_.publishOrienteeringPath(roadmap, full_path);
-                visualizer_.publishSmoothedPath(roadmap, smoothed_path);
-                visualizer_.publishDubinsTrajectory(dubins_trajectory);
+                
+                
 
                 ROS_INFO("Roadmap and High-Level Matrix ready.");
             }
