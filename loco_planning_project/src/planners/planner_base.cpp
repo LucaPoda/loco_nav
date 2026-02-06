@@ -105,7 +105,7 @@ void PlannerBase::run() {
 
                 // 7: Compute a smoothed trajectory using short cutting
                 // std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, params_.max_shortcut_distance);
-                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, env_.getRobotRadius() * 4);
+                std::vector<int> smoothed_path = smoothPathVictimAware(roadmap, full_path, env_, params_.dt);
                 visualizer_.publishSmoothedPath(roadmap, smoothed_path);
 
                 // 8: Compute the Dubins trajectory from the smoothed path
