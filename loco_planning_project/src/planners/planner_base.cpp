@@ -110,7 +110,7 @@ void PlannerBase::run() {
 
                 // 8: Compute the Dubins trajectory from the smoothed path
                 std::vector<TrajectoryPoint> dubins_trajectory = computeOMPLDubinsTrajectory(roadmap, smoothed_path, 
-                                                                                            params_.curvature_max, params_.step_size,
+                                                                                            params_.curvature_max, params_.dt,
                                                                                             env_.getStartPose().z(), env_.getGoalPose().z(), env_);
                 visualizer_.publishDubinsTrajectory(dubins_trajectory);
 
@@ -135,40 +135,43 @@ void PlannerBase::run() {
 
 std::vector<loco_planning::Reference> PlannerBase::computeReferenceFromPath(const std::vector<TrajectoryPoint>& dubins_trajectory) {
     std::vector<loco_planning::Reference> full_reference;
-    
-    // Need at least two points to calculate angular velocity
     if (dubins_trajectory.size() < 2) return full_reference;
 
     for (size_t i = 0; i < dubins_trajectory.size(); ++i) {
         loco_planning::Reference ref;
         
-        // 1. Assign Position and Heading
         ref.x_d = dubins_trajectory[i].x;
         ref.y_d = dubins_trajectory[i].y;
         ref.theta_d = dubins_trajectory[i].theta; 
         
-        // 2. Assign Constant Linear Velocity
+        // 1. Set Linear Velocity
+        // Note: You might want to slow down in sharp curves (high curvature)
         ref.v_d = params_.v_max;
 
-        // 3. Calculate Angular Velocity (Omega) via Finite Difference
+        // 2. Calculate Angular Velocity
         if (i < dubins_trajectory.size() - 1) {
-            double next_theta = dubins_trajectory[i+1].theta;
-            double curr_theta = dubins_trajectory[i].theta;
-            double d_theta = next_theta - curr_theta;
+            double dx = dubins_trajectory[i+1].x - dubins_trajectory[i].x;
+            double dy = dubins_trajectory[i+1].y - dubins_trajectory[i].y;
+            double ds = std::sqrt(dx*dx + dy*dy); // Actual spatial distance
 
-            // Normalize angle difference to [-PI, PI] to handle wrap-around
-            while (d_theta > M_PI) d_theta -= 2.0 * M_PI;
-            while (d_theta < -M_PI) d_theta += 2.0 * M_PI;
+            if (ds > 1e-6) {
+                double d_theta = dubins_trajectory[i+1].theta - dubins_trajectory[i].theta;
+                
+                // Normalize wrap-around
+                while (d_theta > M_PI) d_theta -= 2.0 * M_PI;
+                while (d_theta < -M_PI) d_theta += 2.0 * M_PI;
 
-            // Omega = delta_theta / delta_t
-            ref.omega_d = d_theta / params_.dt;
-        } else {
-            // Last point: Maintain the previous omega or set to zero
-            if (!full_reference.empty()) {
-                ref.omega_d = full_reference.back().omega_d;
+                // Curvature kappa = d_theta / ds
+                double kappa = d_theta / ds;
+
+                // omega = v * kappa. This ensures the velocities are 
+                // kinematically consistent with the Dubins geometry.
+                ref.omega_d = ref.v_d * kappa;
             } else {
                 ref.omega_d = 0.0;
             }
+        } else {
+            ref.omega_d = full_reference.empty() ? 0.0 : full_reference.back().omega_d;
         }
 
         full_reference.push_back(ref);
