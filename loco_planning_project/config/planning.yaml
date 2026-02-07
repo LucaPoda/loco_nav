@@ -1,7 +1,7 @@
 robot_name: "limo0"
 
 # Time Step (dt)
-dt: 0.01  
+dt: 0.001  
 # Physical radius of the Limo robot (meters)
 robot_radius: 0.22  
 

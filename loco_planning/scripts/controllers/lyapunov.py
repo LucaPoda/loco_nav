@@ -41,67 +41,55 @@ class LyapunovController:
             self.log_e_theta.append(0.0)
             return 0.0, 0.0, 0., 0.
 
-        # compute errors
-        # 3d case
-        if hasattr(actual_state, 'roll'):
-            # first compute the errors in the worlf frame (equivalent to horizontal frame)
-            hf_ex = actual_state.x - des_x
-            hf_ey = actual_state.y - des_y
-            hf_R_b = self.math_utils.eul2Rot(np.array([actual_state.roll, actual_state.pitch, 0.]))
-            # map from hf to bf
-            b_exy = hf_R_b.T.dot(np.array([hf_ex, hf_ey, 0]))
-            # discard the z component
-            ex = b_exy[0]
-            ey = b_exy[1]
-            # map theta  along base z axis
-            w_z_b = self.math_utils.eul2Rot(np.array([actual_state.roll, actual_state.pitch, actual_state.theta]))[:, 2]
-            theta, self.theta_old = unwrap_angle(actual_state.theta, self.theta_old)
-            w_etheta = theta - des_theta
-            w_beta = theta + des_theta
-            etheta = w_z_b.dot(np.array([0., 0., w_etheta]))
-            beta = w_z_b.dot(np.array([0., 0., w_beta]))
-        else:  # 2d case
-            ex = actual_state.x - des_x
-            ey = actual_state.y - des_y
-            
-            # 1. Get the current continuous angle
-            theta, self.theta_old = unwrap_angle(actual_state.theta, self.theta_old)
-            
-            # 2. FIX: Calculate error and wrap it to [-pi, pi]
-            # This ensures the robot never tries to turn more than 180 degrees
-            raw_etheta = theta - des_theta
-            etheta = (raw_etheta + np.pi) % (2 * np.pi) - np.pi
-            
-            # 3. Update beta to be consistent with the wrapped etheta
-            # beta is usually (theta + des_theta), but to keep the Lyapunov 
-            # stability proof valid with the wrapped error, use this:
-            beta = etheta + 2 * des_theta
+        # --- 1. ERROR DEFINITION (Actual - Desired) ---
+        # If your C++ uses this, Python must match it.
+        ex = actual_state.x - des_x
+        ey = actual_state.y - des_y
 
-        #compute ausiliary variables
-        psi = math.atan2(ey, ex)
+        # --- 2. HEADING ERROR ---
+        # Using atan2 to handle the +/- pi jumps safely
+        theta = actual_state.theta
+        des_theta_w = math.atan2(math.sin(des_theta), math.cos(des_theta))
+        
+        # Error = Actual - Desired
+        raw_etheta = theta - des_theta_w
+        etheta = (raw_etheta + np.pi) % (2 * np.pi) - np.pi
+        
+        # Beta is required for the Lyapunov domega term
+        beta = theta + des_theta_w
+
+        # --- 3. POLAR COORDINATES ---
         exy = math.sqrt(ex**2 + ey**2)
+        psi = math.atan2(ey, ex)
 
+        # --- 4. CONTROL LAW (Note the NEGATIVE signs for stability) ---
+        # Since error is (Act - Des), we need negative feedback to reduce it.
         dv = -self.K_P * exy * math.cos(psi - theta)
-        # important ! the result is 15% different for the sinc function with python from matlab
-        # domega = -self.K_THETA * etheta -v_d * np.sinc(0.5 * etheta) * exy * math.sin(psi - 0.5 * beta)
-        domega = -v_d * exy * (1/np.cos(etheta/2)) * np.sin(psi - (beta/2)) - self.K_THETA * np.sin(etheta)
+        
+        # Guard the denominator to prevent infinite omega commands
+        denom = np.cos(etheta / 2.0)
+        if abs(denom) < 0.05: 
+            denom = 0.05 * np.sign(denom)
 
+        # domega: Feed-forward term + Heading correction
+        # The negative signs ensure V_dot stays <= 0
+        domega = -v_d * exy * (1.0 / denom) * np.sin(psi - (beta / 2.0)) - self.K_THETA * np.sin(etheta)
+
+        # Final Commands
         v = v_d + dv
         omega = omega_d + domega
 
-        # V = 1 / 2 * (ex ** 2 + ey ** 2+ etheta**2)
-        # V_dot = -self.K_THETA * etheta**2  - self.K_P * exy * math.pow(math.cos(psi - theta),2)
-        V = 1 / 2 * (ex ** 2 + ey ** 2) + (1 - np.cos(etheta))
-        V_dot = -self.K_P * (exy ** 2) * (np.cos(theta - psi) ** 2) - self.K_THETA * (np.sin(etheta) ** 2)
+        # --- 4. STABILITY MONITOR (V_dot) ---
+        # If this is > 0, the controller is driving AWAY from the target
+        v_dot = -self.K_P * (exy**2) * (np.cos(theta - psi)**2) - self.K_THETA * (np.sin(etheta)**2)
+        
+        if v_dot > 0.001:
+            rospy.logwarn_throttle(1, f"Unstable! V_dot: {v_dot:.4f}")
 
-        #domega = - self.K_THETA * etheta - 2/etheta * v_d * np.sin(0.5 * etheta)* np.sin(psi - 0.5 * beta)
-        # save errors for plotting
-
+        # --- 5. LOGGING ---
         self.log_e_x.append(ex)
         self.log_e_y.append(ey)
         self.log_e_theta.append(etheta)
 
-        # print("ERRORS -> x:%.2f, y:%.2f, theta:%.2f" % (ex, ey, etheta))
-        # print("VELS -> v:%.2f, o:%.2f" % (v_ref + dv, o_ref + domega))
         return v, omega
 

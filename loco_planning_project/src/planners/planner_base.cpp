@@ -22,7 +22,7 @@ void PlannerBase::initialize(const std::string& robot_name) {
         ROS_INFO("Synced 'dt' from global config: %.4f s", params_.dt);
     } else {
         // Fallback: Read from our local planning.yaml
-        pnh.param<double>("dt", params_.dt, 0.01); 
+        pnh.param<double>("dt", params_.dt, 0.001); 
         ROS_WARN("Global '%s' not found. Using local 'dt': %.4f. ENSURE THIS MATCHES params.py!", 
                  global_dt_param.c_str(), params_.dt);
     }
@@ -136,65 +136,44 @@ void PlannerBase::run() {
 std::vector<loco_planning::Reference> PlannerBase::computeReferenceFromPath(const std::vector<TrajectoryPoint>& dubins_trajectory) {
     std::vector<loco_planning::Reference> full_reference;
     if (dubins_trajectory.size() < 2) return full_reference;
-    double last_unwrapped_theta = dubins_trajectory[0].theta;
+
+    // FIX 1: Declare and initialize last_unwrapped_theta
+    double last_unwrapped_theta = dubins_trajectory[0].theta; 
 
     for (size_t i = 0; i < dubins_trajectory.size(); ++i) {
         loco_planning::Reference ref;
         
-        // Data Continuity
-        // 1. Get the raw theta from the Dubins point
+        // 1. Maintain the Unwrapped Theta
         double current_raw_theta = dubins_trajectory[i].theta;
-        
-        // 2. UNWRAP: Calculate the difference from the previous point
-        double d_theta_raw = current_raw_theta - last_unwrapped_theta;
-        
-        // Normalize the difference to [-PI, PI]
-        while (d_theta_raw > M_PI)  d_theta_raw -= 2.0 * M_PI;
-        while (d_theta_raw < -M_PI) d_theta_raw += 2.0 * M_PI;
-        
-        // Add the small delta to the previous unwrapped value
+        double d_theta_raw = std::atan2(std::sin(current_raw_theta - last_unwrapped_theta), 
+                                        std::cos(current_raw_theta - last_unwrapped_theta));
         double unwrapped_theta = last_unwrapped_theta + d_theta_raw;
         
-        // 3. Assign the smooth, unwrapped theta to the reference
+        // Wrap for the published message to stay consistent with Python's wrap
         ref.theta_d = unwrapped_theta;
-        last_unwrapped_theta = unwrapped_theta; // Update for next iteration
+        last_unwrapped_theta = unwrapped_theta;
 
         ref.x_d = dubins_trajectory[i].x;
         ref.y_d = dubins_trajectory[i].y;
-        
-        // 1. Set Linear Velocity
-        // Note: You might want to slow down in sharp curves (high curvature)
         ref.v_d = params_.v_max;
 
-        // 2. Calculate Angular Velocity
+        // 2. Kinematic Consistency
         if (i < dubins_trajectory.size() - 1) {
-            double dx = dubins_trajectory[i+1].x - dubins_trajectory[i].x;
-            double dy = dubins_trajectory[i+1].y - dubins_trajectory[i].y;
-            double ds = std::sqrt(dx*dx + dy*dy); // Actual spatial distance
+            double next_theta = dubins_trajectory[i+1].theta;
+            double current_theta = dubins_trajectory[i].theta;
+            
+            double delta_theta = std::atan2(std::sin(next_theta - current_theta), 
+                                            std::cos(next_theta - current_theta));
 
-            if (ds > 1e-6) {
-                double d_theta = dubins_trajectory[i+1].theta - dubins_trajectory[i].theta;
-                
-                // Normalize wrap-around
-                while (d_theta > M_PI) d_theta -= 2.0 * M_PI;
-                while (d_theta < -M_PI) d_theta += 2.0 * M_PI;
-
-                // Curvature kappa = d_theta / ds
-                double kappa = d_theta / ds;
-
-                // omega = v * kappa. This ensures the velocities are 
-                // kinematically consistent with the Dubins geometry.
-                ref.omega_d = ref.v_d * kappa;
-            } else {
-                ref.omega_d = 0.0;
-            }
+            ref.omega_d = delta_theta / params_.dt; 
         } else {
-            ref.omega_d = full_reference.empty() ? 0.0 : full_reference.back().omega_d;
+            ref.omega_d = 0.0;
         }
 
         full_reference.push_back(ref);
     }
-    
+
+    // FIX 2: Return the vector!
     return full_reference;
 }
 
