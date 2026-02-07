@@ -136,13 +136,31 @@ void PlannerBase::run() {
 std::vector<loco_planning::Reference> PlannerBase::computeReferenceFromPath(const std::vector<TrajectoryPoint>& dubins_trajectory) {
     std::vector<loco_planning::Reference> full_reference;
     if (dubins_trajectory.size() < 2) return full_reference;
+    double last_unwrapped_theta = dubins_trajectory[0].theta;
 
     for (size_t i = 0; i < dubins_trajectory.size(); ++i) {
         loco_planning::Reference ref;
         
+        // Data Continuity
+        // 1. Get the raw theta from the Dubins point
+        double current_raw_theta = dubins_trajectory[i].theta;
+        
+        // 2. UNWRAP: Calculate the difference from the previous point
+        double d_theta_raw = current_raw_theta - last_unwrapped_theta;
+        
+        // Normalize the difference to [-PI, PI]
+        while (d_theta_raw > M_PI)  d_theta_raw -= 2.0 * M_PI;
+        while (d_theta_raw < -M_PI) d_theta_raw += 2.0 * M_PI;
+        
+        // Add the small delta to the previous unwrapped value
+        double unwrapped_theta = last_unwrapped_theta + d_theta_raw;
+        
+        // 3. Assign the smooth, unwrapped theta to the reference
+        ref.theta_d = unwrapped_theta;
+        last_unwrapped_theta = unwrapped_theta; // Update for next iteration
+
         ref.x_d = dubins_trajectory[i].x;
         ref.y_d = dubins_trajectory[i].y;
-        ref.theta_d = dubins_trajectory[i].theta; 
         
         // 1. Set Linear Velocity
         // Note: You might want to slow down in sharp curves (high curvature)
