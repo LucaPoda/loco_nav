@@ -17,7 +17,17 @@ void PlannerACD::initialize(const std::string& robot_name) {
     ros::NodeHandle pnh("~");
     pnh.param("quadtree_max_depth", quadtree_max_depth_, 6);
     pnh.param("quadtree_min_size", quadtree_min_size_, 0.25);
-    pnh.param("k_victim_neighbors", k_victim_neighbors_, 15);
+    pnh.param("k_victim_neighbors", k_victim_neighbors_, 4);
+    pnh.param("min_connection_distance", min_connection_distance_, 1.6);
+
+    if (quadtree_min_size_ < min_connection_distance_/2) {
+        // ROS_WARN(
+        //     "quadtree_min_size (%.3f) < min_connection_distance (%.3f)/2. "
+        //     "Clamping quadtree_min_size to min_connection_distance/2.",
+        //     quadtree_min_size_, min_connection_distance_/2);
+        quadtree_min_size_ = min_connection_distance_/2;
+    }
+
 
     ROS_INFO("Initializing ACD (Quadtree) Planner plugin...");
     ROS_INFO("  quadtree_max_depth: %d", quadtree_max_depth_);
@@ -363,15 +373,30 @@ Roadmap PlannerACD::buildRoadmap() {
     for (size_t vi = 0; vi < victims.size(); ++vi) {
         int victim_id = static_cast<int>(2 + vi);
         const Eigen::Vector2d victim_pos = roadmap.getNodes().at(victim_id).position;
+
         std::vector<std::pair<double,int>> cand;
         cand.reserve(cells.size());
-        for (const auto& c : cells) cand.emplace_back((victim_pos - c.center).norm(), c.center_id);
+        for (const auto& c : cells) {
+            double d = (victim_pos - c.center).norm();
+            if (d >= min_connection_distance_) {   // ← enforce constraint
+                cand.emplace_back(d, c.center_id);
+            }
+        }
+
+        if (cand.empty()) {
+            ROS_WARN(
+                "Victim node %d: no centers beyond min_connection_distance (%.2f). Skipping victim connections.",
+                victim_id, min_connection_distance_);
+            continue;
+        }
+
         std::sort(cand.begin(), cand.end());
         int connected = 0;
         for (size_t k = 0; k < cand.size() && connected < k_victim_neighbors_; ++k) {
             int cid = cand[k].second;
-            const Eigen::Vector2d center_pos = roadmap.getNodes().at(cid).position;
             double dist = cand[k].first;
+            const Eigen::Vector2d center_pos = roadmap.getNodes().at(cid).position;
+
             if (collisionFreeSegment(env, victim_pos, center_pos)) {
                 roadmap.addEdge(victim_id, cid, dist);
                 roadmap.addEdge(cid, victim_id, dist);
@@ -379,15 +404,15 @@ Roadmap PlannerACD::buildRoadmap() {
             }
         }
         if (connected == 0) {
-            if (!cand.empty()) {
-                int cid = cand.front().second;
-                double dist = cand.front().first;
-                ROS_WARN("Victim node %d had zero collision-free center connections; falling back to nearest center %d.", victim_id, cid);
-                roadmap.addEdge(victim_id, cid, dist);
-                roadmap.addEdge(cid, victim_id, dist);
-            } else {
-                ROS_ERROR("Victim node %d: no centers exist to connect to.", victim_id);
-            }
+            // fallback only among valid-distance candidates
+            int cid = cand.front().second;
+            double dist = cand.front().first;
+            ROS_WARN(
+                "Victim node %d: no collision-free center >= min_connection_distance. "
+                "Falling back to nearest valid center %d.",
+                victim_id, cid);
+            roadmap.addEdge(victim_id, cid, dist);
+            roadmap.addEdge(cid, victim_id, dist);
         }
     }
 

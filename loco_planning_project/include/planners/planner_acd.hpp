@@ -21,6 +21,7 @@ private:
     double quadtree_min_size_;
     int quadtree_samples_per_side_;
     int k_victim_neighbors_;
+    double min_connection_distance_;
 };
 
 #endif // PLANNER_ACD_H
