@@ -26,6 +26,7 @@ protected:
 
 private:
     // Add your algorithm-specific parameters here
+    ros::Publisher slab_pub_;
 
 };
 
