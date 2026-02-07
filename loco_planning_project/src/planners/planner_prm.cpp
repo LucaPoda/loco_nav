@@ -17,6 +17,9 @@ void PlannerPRM::initialize(const std::string& robot_name) {
     pnh.param<int>("prm/n_samples", n_samples, 200);
     pnh.param<int>("prm/k_neighbors", k_neighbors, 10);
     pnh.param<double>("prm/resolution", resolution, 0.05);
+    pnh.param<double>("prm/min_connection_distance", params_.min_connection_distance, 4.0 * params_.min_radius);
+    pnh.param<double>("prm/max_connection_distance", params_.max_connection_distance, 4.0);
+
 
     ROS_INFO("PRM initialized: %d samples, k=%d, res=%.3f", n_samples, k_neighbors, resolution);
 }
@@ -96,21 +99,29 @@ Roadmap PlannerPRM::buildRoadmap() {
     // 3. Connect neighbours
     ROS_INFO("Connetting nodes...");
     ROS_INFO("Found %zu positions...", node_positions.size());
-    for (int i = 0; i < node_positions.size(); ++i) {
+    for (int i = 0; i < (int)node_positions.size(); ++i) {
         std::vector<std::pair<double, int>> neighbors;
 
-        for (int j = 0; j < node_positions.size(); ++j) {
+        for (int j = 0; j < (int)node_positions.size(); ++j) {
             if (i == j) continue;
 
-            // Use node_positions.size()
-            if (i >= node_positions.size() || j >= node_positions.size()) {
+            double d = (node_positions[i] - node_positions[j]).norm();
+
+            // --- THE 4R FILTER ---
+            // If distance is less than 4R, we skip this neighbor to avoid CCC/Lightbulb loops
+            if (d < params_.min_connection_distance) {
                 continue;
+            }
+
+            // Optional: upper bound to keep the graph sparse
+            if (d > params_.max_connection_distance) {
+                continue;
+            }
+
+            neighbors.push_back({d, j});
         }
 
-        double d = (node_positions[i] - node_positions[j]).norm();
-        neighbors.push_back({d, j});
-    }
-        // Sort by distance to get the "K" closest
+        // Sort by distance to get the "K" closest valid candidates
         std::sort(neighbors.begin(), neighbors.end());
 
         int connections_made = 0;
@@ -118,8 +129,6 @@ Roadmap PlannerPRM::buildRoadmap() {
             int neighbor_idx = neighbors[k].second;
             double distance = neighbors[k].first;
 
-            ROS_INFO("Checking collision between %d and %d", i, neighbor_idx);
-            // Check if the straight-line path between i and neighbor_idx is clear
             if (isCollisionFree(node_positions[i], node_positions[neighbor_idx])) {
                 roadmap.addEdge(i, neighbor_idx, distance);
                 connections_made++;

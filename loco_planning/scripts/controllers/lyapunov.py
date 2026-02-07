@@ -63,9 +63,19 @@ class LyapunovController:
         else:  # 2d case
             ex = actual_state.x - des_x
             ey = actual_state.y - des_y
+            
+            # 1. Get the current continuous angle
             theta, self.theta_old = unwrap_angle(actual_state.theta, self.theta_old)
-            etheta = theta - des_theta
-            beta = theta + des_theta
+            
+            # 2. FIX: Calculate error and wrap it to [-pi, pi]
+            # This ensures the robot never tries to turn more than 180 degrees
+            raw_etheta = theta - des_theta
+            etheta = (raw_etheta + np.pi) % (2 * np.pi) - np.pi
+            
+            # 3. Update beta to be consistent with the wrapped etheta
+            # beta is usually (theta + des_theta), but to keep the Lyapunov 
+            # stability proof valid with the wrapped error, use this:
+            beta = etheta + 2 * des_theta
 
         #compute ausiliary variables
         psi = math.atan2(ey, ex)

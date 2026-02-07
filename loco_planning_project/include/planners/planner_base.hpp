@@ -26,7 +26,9 @@ struct PlannerParams {
     double max_shortcut_distance;
     double min_radius;
     double step_size;
-    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), max_shortcut_distance(1), min_radius(0.4), step_size(0.05) {}
+    double min_connection_distance; 
+    double max_connection_distance; 
+    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), max_shortcut_distance(1), min_radius(0.4), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
 };
 
 class PlannerBase {
@@ -61,13 +63,13 @@ protected:
 
     PlannerVisualizer visualizer_;
 
-private:
     // Environment data form ROS:
     EnvironmentHandler env_;
     // Planner parameters: v_max, curvature_max, dt
     PlannerParams params_; 
 
-    
+
+private:
     // Node Handle for global topics
     ros::NodeHandle nh_;
 

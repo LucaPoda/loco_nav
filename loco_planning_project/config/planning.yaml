@@ -28,7 +28,9 @@ t_max: 400
 prm:
   n_samples: 400        # Number of random nodes to scatter
   #connection_radius: 2.0   # Max distance to connect two nodes
-  k_neighbors: 15    # Max neighbors to check for connection
+  #k_neighbors: 15    # Max neighbors to check for connection
+  min_connection_distance: 1.6  # 4 * min_radius (0.4) = 1.6m
+  max_connection_distance: 7.0  # Prevents edges that are too long/risky
   resolution: 0.05
 
 # --- Exact Cell Decomposition Planner ---

@@ -35,7 +35,7 @@ void PlannerBase::initialize(const std::string& robot_name) {
     pnh.param<double>("max_shortcut_distance", params_.max_shortcut_distance, 1.0);
     pnh.param<double>("min_radius", params_.min_radius, 0.4);
     pnh.param<double>("step_size", params_.step_size, 0.05);
-
+   
     // Setup publishers
     std::string ref_topic = "/" + robot_name_ + "/ref";
     ref_pub_ = nh.advertise<loco_planning::Reference>(ref_topic, 10);
