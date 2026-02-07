@@ -12,3 +12,5 @@ __pycache__/
 .DS_Store
 
 dp_matrix_visualization.html
+map_pkg/maps/dynamic_map.pgm
+map_pkg/maps/dynamic_map.png

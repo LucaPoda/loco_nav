@@ -10,6 +10,9 @@ roslaunch loco_planning_project planner.launch algo:=prm
 - ECD
 roslaunch loco_planning_project planner.launch algo:=ecd
 
+- ACD
+roslaunch loco_planning_project planner.launch algo:=acd
+
 -->
 
 <launch>    
@@ -29,6 +32,12 @@ roslaunch loco_planning_project planner.launch algo:=ecd
             name="planning_plugin" 
             value="loco_planning_project/PlannerECD" 
             if="$(eval arg('algo') == 'ecd')" 
+        />
+
+        <param 
+            name="planning_plugin" 
+            value="loco_planning_project/PlannerACD" 
+            if="$(eval arg('algo') == 'acd')" 
         />
                
     </node>
