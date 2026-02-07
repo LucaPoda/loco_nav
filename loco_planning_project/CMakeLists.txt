@@ -81,6 +81,7 @@ add_library(planner_lib
   src/planners/planner_base.cpp
   src/planners/planner_prm.cpp
   src/planners/planner_ecd.cpp
+  src/planners/planner_acd.cpp
 
   ${CLIPPER_SOURCES}
 )

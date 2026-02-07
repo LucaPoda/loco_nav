@@ -14,4 +14,12 @@
       An Exact Cell Decomposition planner implementation.
     </description>
   </class>
+
+  <class name="loco_planning_project/PlannerACD" 
+        type="PlannerACD" 
+        base_class_type="PlannerBase">
+  <description>
+    An Approximate Cell Decomposition planner implementation.
+  </description>
+  </class>
 </library>

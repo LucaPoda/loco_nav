@@ -26,11 +26,7 @@ protected:
 
 private:
     // Add your algorithm-specific parameters here
-    ros::Publisher slab_pub_;
-    int quadtree_max_depth_;
-    double quadtree_min_size_;
-    int quadtree_samples_per_side_;
-    int k_victim_neighbors_;
+
 };
 
 #endif // PLANNER_ECD_H
