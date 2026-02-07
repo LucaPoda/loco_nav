@@ -1,20 +1,34 @@
 #ifndef PLANNER_BASE_H
 #define PLANNER_BASE_H
 
-#include <ros/ros.h>
-#include <loco_planning/Reference.h>
-#include <Eigen/Dense>
-#include "utils/environment_handler.hpp"
-#include "utils/roadmap.hpp"
 #include <vector>
 #include <string>
-#include "utils/planner_visualizer.hpp"
+
+#include <ros/ros.h>
+#include <Eigen/Dense>
+
+#include <loco_planning/Reference.h>
+
+#include "environment/EnvironmentHandler.hpp"
+#include "environment/Roadmap.hpp"
+#include "orienteering/DistanceMatrix.hpp"
+#include "orienteering/Orienteering.hpp"
+#include "trajectory/Smoothing.hpp"
+#include "trajectory/DubinsTrajectory.hpp"
+#include "utils/PlannerVisualizer.hpp"
 
 struct PlannerParams {
     double v_max;
     double curvature_max;
     double dt;
-    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01) {}
+
+    double t_max;
+    double max_shortcut_distance;
+    double min_radius;
+    double step_size;
+    double min_connection_distance; 
+    double max_connection_distance; 
+    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), max_shortcut_distance(1), min_radius(0.4), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
 };
 
 class PlannerBase {
@@ -40,19 +54,22 @@ protected:
     // Abstract method to calculate the geometric path
     virtual Roadmap buildRoadmap() = 0;
 
+    // Compute matrix with dijkstra
+    // virtual std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) = 0;   
+    
     ros::Publisher roadmap_pub_;
     // Generic function to visualize any roadmap graph
     //void visualizeRoadmap(const Roadmap& roadmap);
 
     PlannerVisualizer visualizer_;
 
-private:
     // Environment data form ROS:
     EnvironmentHandler env_;
     // Planner parameters: v_max, curvature_max, dt
     PlannerParams params_; 
 
-    
+
+private:
     // Node Handle for global topics
     ros::NodeHandle nh_;
 
@@ -63,10 +80,12 @@ private:
     bool path_computed_;
 
     // Converts geometric waypoints into a dense, timed trajectory.
-    std::vector<loco_planning::Reference> computeReferenceFromPath(const std::vector<Eigen::Vector3d>& path);
+    std::vector<loco_planning::Reference> computeReferenceFromPath(const std::vector<TrajectoryPoint>& path);
     
     // Publishes the trajectory to the reference topic.
     void publishReference(const std::vector<loco_planning::Reference>& reference);
+
+    std::vector<int> special_ids; // [0, n_victims+2)
 };
 
 #endif // PLANNER_BASE_H

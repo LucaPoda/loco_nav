@@ -2,6 +2,8 @@
 #include <pluginlib/class_list_macros.h>
 #include <random>    // Required for std::default_random_engine
 #include <algorithm> // Required for std::sort and std::min
+#include <queue>
+#include <map>
 
 PlannerPRM::PlannerPRM() {}
 PlannerPRM::~PlannerPRM() {}
@@ -15,6 +17,9 @@ void PlannerPRM::initialize(const std::string& robot_name) {
     pnh.param<int>("prm/n_samples", n_samples, 200);
     pnh.param<int>("prm/k_neighbors", k_neighbors, 10);
     pnh.param<double>("prm/resolution", resolution, 0.05);
+    pnh.param<double>("prm/min_connection_distance", params_.min_connection_distance, 4.0 * params_.min_radius);
+    pnh.param<double>("prm/max_connection_distance", params_.max_connection_distance, 4.0);
+
 
     ROS_INFO("PRM initialized: %d samples, k=%d, res=%.3f", n_samples, k_neighbors, resolution);
 }
@@ -32,15 +37,45 @@ Roadmap PlannerPRM::buildRoadmap() {
     // We keep a local vector of positions to make distance checking easy
     std::vector<Eigen::Vector2d> node_positions;
 
-    
-    // 1. Random Sampling
-    ROS_INFO("PRM: Sampling %d nodes...", n_samples); 
-    
     // Use the real boundaries
     double min_x = env.getMinX();
     double max_x = env.getMaxX();
     double min_y = env.getMinY();
     double max_y = env.getMaxY();
+
+    // 1. Add special nodes
+    // 1.1 Get special nodes: start, goal and victims
+    Eigen::Vector2d start_pos = env.getStartPose().head<2>();
+    Eigen::Vector2d goal_pos = env.getGoalPose().head<2>();
+    const auto& victims = env.getVictims();
+
+    // 1.2 Define IDs (high to avoid overlap with random nodes' IDs)
+    int start_id = 0;
+    int goal_id  = 1;
+    int victim_start_index = 2; // first victim, start victims ID from here
+
+    // 1.3 Add to roadmap and to positions vector
+    ROS_INFO("Adding special nodes...");
+
+    // Start
+    roadmap.addNode(start_id, start_pos, 0.0); // Start has 0 score
+    node_positions.push_back(start_pos);
+
+    // Goal
+    roadmap.addNode(goal_id, goal_pos, 0.0);   // Goal has 0 score
+    node_positions.push_back(goal_pos);
+
+    // Victims
+    for (size_t i = 0; i < victims.size(); ++i) {
+        int v_id = victim_start_index + i;
+        // IMPORTANT: Score comes from the 'radius' field of the topic
+        roadmap.addNode(v_id, victims[i].position, victims[i].reward); 
+        node_positions.push_back(victims[i].position);
+    }
+
+    
+    // 2. Random Sampling
+    ROS_INFO("PRM: Sampling %d nodes...", n_samples); 
 
     std::uniform_real_distribution<double> dist_x(min_x, max_x);
     std::uniform_real_distribution<double> dist_y(min_y, max_y);
@@ -61,48 +96,32 @@ Roadmap PlannerPRM::buildRoadmap() {
         }
     }
 
-    // 2. Add special nodes + connect neighbours
-    // 2.1 Get special nodes: start, goal and victims
-    Eigen::Vector2d start_pos = env.getStartPose().head<2>();
-    Eigen::Vector2d goal_pos = env.getGoalPose().head<2>();
-    const auto& victims = env.getVictims();
-
-    // 2.2 Define IDs (high to avoid overlap with random nodes' IDs)
-    int start_id = n_samples;
-    int goal_id  = n_samples + 1;
-    int victim_start_index = n_samples + 2; // first victim, start victims ID from here
-
-    // 2.3 Add to Roadmap + positions vector
-    roadmap.addNode(start_id, start_pos, 0.0); // Start has 0 score
-    node_positions.push_back(start_pos);
-
-    roadmap.addNode(goal_id, goal_pos, 0.0);   // Goal has 0 score
-    node_positions.push_back(goal_pos);
-
-    for (size_t i = 0; i < victims.size(); ++i) {
-        int v_id = victim_start_index + i;
-        // IMPORTANT: Score comes from the 'radius' field of the topic
-        roadmap.addNode(v_id, victims[i].position, victims[i].reward); 
-        node_positions.push_back(victims[i].position);
-    }
-
+    // 3. Connect neighbours
     ROS_INFO("Connetting nodes...");
     ROS_INFO("Found %zu positions...", node_positions.size());
-    for (int i = 0; i < node_positions.size(); ++i) {
+    for (int i = 0; i < (int)node_positions.size(); ++i) {
         std::vector<std::pair<double, int>> neighbors;
 
-        for (int j = 0; j < node_positions.size(); ++j) {
+        for (int j = 0; j < (int)node_positions.size(); ++j) {
             if (i == j) continue;
 
-            // Use node_positions.size()
-            if (i >= node_positions.size() || j >= node_positions.size()) {
+            double d = (node_positions[i] - node_positions[j]).norm();
+
+            // --- THE 4R FILTER ---
+            // If distance is less than 4R, we skip this neighbor to avoid CCC/Lightbulb loops
+            if (d < params_.min_connection_distance) {
                 continue;
+            }
+
+            // Optional: upper bound to keep the graph sparse
+            if (d > params_.max_connection_distance) {
+                continue;
+            }
+
+            neighbors.push_back({d, j});
         }
 
-        double d = (node_positions[i] - node_positions[j]).norm();
-        neighbors.push_back({d, j});
-    }
-        // Sort by distance to get the "K" closest
+        // Sort by distance to get the "K" closest valid candidates
         std::sort(neighbors.begin(), neighbors.end());
 
         int connections_made = 0;
@@ -110,8 +129,6 @@ Roadmap PlannerPRM::buildRoadmap() {
             int neighbor_idx = neighbors[k].second;
             double distance = neighbors[k].first;
 
-            ROS_INFO("Checking collision between %d and %d", i, neighbor_idx);
-            // Check if the straight-line path between i and neighbor_idx is clear
             if (isCollisionFree(node_positions[i], node_positions[neighbor_idx])) {
                 roadmap.addEdge(i, neighbor_idx, distance);
                 connections_made++;
@@ -119,7 +136,8 @@ Roadmap PlannerPRM::buildRoadmap() {
         }
     }
 
-    ROS_INFO("Map ready.");
+    // 4. Return the roadmap
+    ROS_INFO("Roadmap ready.");
     return roadmap;
 }
 

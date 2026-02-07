@@ -5,6 +5,12 @@ Created on Fri Nov  2 16:52:08 2018
 
 @author: mfocchi
 """
+import sys, os
+
+# Get the directory of the current script (scripts/) and add it to the path
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, script_dir)
+
 
 import matplotlib
 matplotlib.use('TkAgg')

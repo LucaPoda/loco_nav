@@ -242,6 +242,30 @@ Visualization Manager:
         border: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /planner/path_raw
+      Name: Path Raw
+      Namespaces:
+        path_raw: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /planner/path_smoothed
+      Name: Path Smoothed
+      Namespaces:
+        path_smoothed: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /planner/trajectory_dubins
+      Name: Trajectory Dubins
+      Namespaces:
+        trajectory_dubins: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 247; 247; 247

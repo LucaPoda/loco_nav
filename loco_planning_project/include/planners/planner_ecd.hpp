@@ -20,8 +20,13 @@ protected:
     // 4. The Core Logic Override
     Roadmap buildRoadmap() override;
 
+    // std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) override {
+    //     return std::map<int, std::map<int, double>>(); 
+    // }
+
 private:
     // Add your algorithm-specific parameters here
+    ros::Publisher slab_pub_;
 
 };
 
