@@ -11,7 +11,7 @@ struct DijkstraResult {
     std::map<int, double> distances;
     std::map<int, int> predecessors; 
 
-    std::vector<int> getPathTo(int goal_id) const {
+    std::vector<int> getPathTo(int goal_id) {
         std::vector<int> path;
         auto it_dist = distances.find(goal_id);
         if (it_dist == distances.end() || it_dist->second == std::numeric_limits<double>::infinity()) {
@@ -27,24 +27,24 @@ struct DijkstraResult {
 
 class DistanceMatrix {
 public:
-    DistanceMatrix(const Roadmap& original_roadmap, const std::vector<int>& interest_nodes);
+    DistanceMatrix(Roadmap& original_roadmap, std::vector<int>& interest_nodes);
 
-    Roadmap buildShortestPathsRoadmap() const;
+    Roadmap buildShortestPathsRoadmap();
 
-    std::vector<int> getFullPath(const std::vector<int>& interest_path) const;
+    std::vector<int> getFullPath(std::vector<int>& interest_path);
 
     std::stringstream display();
 
     // Inside DistanceMatrix class in DistanceMatrix.hpp
-    const std::map<int, DijkstraResult>& getSearchCache() const { return search_cache_; }
-    const std::vector<int>& getInterestNodes() const { return interest_nodes_; }
+    std::map<int, DijkstraResult>& getSearchCache() { return search_cache_; }
+    std::vector<int>& getInterestNodes() { return interest_nodes_; }
 
 private:
-    const Roadmap& roadmap_;
+    Roadmap& roadmap_;
     std::map<int, DijkstraResult> search_cache_; 
     std::vector<int> interest_nodes_;
 
-    DijkstraResult computeDijkstra(int start_id) const;
+    DijkstraResult computeDijkstra(int start_id);
 };
 
 #endif

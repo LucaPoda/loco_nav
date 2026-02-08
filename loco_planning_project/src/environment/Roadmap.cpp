@@ -15,21 +15,21 @@ void Roadmap::addEdge(int id1, int id2, double weight) {
     adjacency_list_[id2].push_back({id1, weight});
 }
 
-const std::vector<Edge>& Roadmap::getNeighbors(int id) const {
-    static const std::vector<Edge> empty;
+std::vector<Edge>& Roadmap::getNeighbors(int id) {
+    static std::vector<Edge> empty;
     auto it = adjacency_list_.find(id);
     return (it != adjacency_list_.end()) ? it->second : empty;
 }
 
-std::vector<EdgeDisplay> Roadmap::getEdges() const {
+std::vector<EdgeDisplay> Roadmap::getEdges() {
     std::vector<EdgeDisplay> edges;
     
     // Iterate through the adjacency map
-    for (const auto& entry : adjacency_list_) {
+    for (auto& entry : adjacency_list_) {
         int u = entry.first;
-        const std::vector<Edge>& neighbors = entry.second;
+        std::vector<Edge>& neighbors = entry.second;
 
-        for (const auto& edge : neighbors) {
+        for (auto& edge : neighbors) {
             int v = edge.to;
             // Only add the edge if u < v to avoid duplicate undirected edges in the list
             if (u < v) {

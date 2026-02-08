@@ -23,12 +23,11 @@ struct PlannerParams {
     double dt;
 
     double t_max;
-    double max_shortcut_distance;
     double min_radius;
     double step_size;
     double min_connection_distance; 
     double max_connection_distance; 
-    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), max_shortcut_distance(1), min_radius(0.4), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
+    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
 };
 
 class PlannerBase {
@@ -78,6 +77,8 @@ private:
     
     std::string robot_name_;
     bool path_computed_;
+
+    double max_path_length_;
 
     // Converts geometric waypoints into a dense, timed trajectory.
     std::vector<loco_planning::Reference> computeReferenceFromPath(const std::vector<TrajectoryPoint>& path);

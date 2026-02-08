@@ -35,9 +35,9 @@ public:
     void addEdge(int id1, int id2, double weight);
 
     // --- Getters ---
-    const std::map<int, Node>& getNodes() const { return nodes_; }
-    const std::vector<Edge>& getNeighbors(int id) const;
-    std::vector<EdgeDisplay> getEdges() const;
+    std::map<int, Node>& getNodes() { return nodes_; }
+    std::vector<Edge>& getNeighbors(int id);
+    std::vector<EdgeDisplay> getEdges();
 
     // Clear the roadmap
     void clear() {

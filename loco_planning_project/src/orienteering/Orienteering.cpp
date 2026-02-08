@@ -3,15 +3,15 @@
 #include <algorithm>
 #include <set>
 
-std::vector<int> OrienteeringPlanner::plan(const Roadmap& simple_roadmap, int start_id, int end_id, double T_max) {
-    const auto& nodes = simple_roadmap.getNodes();
+std::vector<int> OrienteeringPlanner::plan(Roadmap& simple_roadmap, int start_id, int end_id, double T_max) {
+    auto& nodes = simple_roadmap.getNodes();
     std::vector<int> current_path = {start_id, end_id};
     double current_dist = simple_roadmap.getNeighbors(start_id).at(0).weight; // Assuming direct edge exists
 
     // 1. GREEDY INSERTION
     std::set<int> unvisited;
     for (auto const& [id, node] : nodes) {
-        if (id != start_id && id != end_id) unvisited.insert(id);
+        if (id != start_id && id != end_id && node.score > 0) unvisited.insert(id);
     }
 
     bool improved = true;
@@ -22,6 +22,8 @@ std::vector<int> OrienteeringPlanner::plan(const Roadmap& simple_roadmap, int st
         double best_efficiency = -1.0;
 
         for (int candidate : unvisited) {
+            if (nodes.at(candidate).score <= 0) continue; // skip if the score is zero
+
             for (size_t i = 0; i < current_path.size() - 1; ++i) {
                 int u = current_path[i];
                 int v = current_path[i+1];
@@ -58,14 +60,14 @@ std::vector<int> OrienteeringPlanner::plan(const Roadmap& simple_roadmap, int st
 }
 
 // Helper to safely get edge weight from the adjacency list
-double OrienteeringPlanner::getEdgeWeight(const Roadmap& roadmap, int u, int v) {
-    for (const auto& edge : roadmap.getNeighbors(u)) {
+double OrienteeringPlanner::getEdgeWeight(Roadmap& roadmap, int u, int v) {
+    for (auto& edge : roadmap.getNeighbors(u)) {
         if (edge.to == v) return edge.weight;
     }
     return 1e9; // Infinity
 }
 
-double OrienteeringPlanner::calculatePathDist(const Roadmap& roadmap, const std::vector<int>& path) {
+double OrienteeringPlanner::calculatePathDist(Roadmap& roadmap, std::vector<int>& path) {
     double total = 0;
     for (size_t i = 0; i < path.size() - 1; ++i) {
         total += getEdgeWeight(roadmap, path[i], path[i+1]);
@@ -73,7 +75,7 @@ double OrienteeringPlanner::calculatePathDist(const Roadmap& roadmap, const std:
     return total;
 }
 
-void OrienteeringPlanner::optimize2Opt(const Roadmap& roadmap, std::vector<int>& path) {
+void OrienteeringPlanner::optimize2Opt(Roadmap& roadmap, std::vector<int>& path) {
     if (path.size() < 4) return;
     bool improved = true;
     while (improved) {

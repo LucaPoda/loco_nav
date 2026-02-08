@@ -13,14 +13,12 @@ inflation_epsilon: 0.01
 
 # Maximum linear velocity (m/s)
 # Used to generate the timed reference trajectory
-v_max: 0.5 
+v_max: 0.5
 
 # Maximum curvature (1/turning_radius)
 # curvature_max = 1.0 means Min Turning Radius = 1.0m
 curvature_max: 1.0 
 
-max_shortcut_distance: 1
-min_radius: 0.4
 step_size: 0.05
 t_max: 400
 

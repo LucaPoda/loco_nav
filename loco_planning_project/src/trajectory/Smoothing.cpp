@@ -1,12 +1,12 @@
 // Smoothing.cpp
 #include "trajectory/Smoothing.hpp"
 
-std::vector<int> smoothPathVictimAware(const Roadmap& roadmap, 
-                                       const std::vector<int>& path, 
-                                       const EnvironmentHandler& env,
+std::vector<int> smoothPathVictimAware(Roadmap& roadmap, 
+                                       std::vector<int>& path, 
+                                       EnvironmentHandler& env,
                                        double check_resolution = 0.1) {
     if (path.size() <= 2) return path;
-    const auto& nodes = roadmap.getNodes();
+    auto& nodes = roadmap.getNodes();
     std::vector<int> smooth = {path[0]};
 
     int i = 0;

@@ -4,7 +4,7 @@
 #include "environment/Roadmap.hpp"
 #include "environment/EnvironmentHandler.hpp"
 
-std::vector<int> smoothPathVictimAware(const Roadmap& roadmap, 
-                                       const std::vector<int>& path, 
-                                       const EnvironmentHandler& env,
+std::vector<int> smoothPathVictimAware(Roadmap& roadmap, 
+                                       std::vector<int>& path, 
+                                       EnvironmentHandler& env,
                                        double check_resolution);

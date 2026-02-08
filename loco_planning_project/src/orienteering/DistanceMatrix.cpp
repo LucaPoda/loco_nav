@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iomanip>
 
-DistanceMatrix::DistanceMatrix(const Roadmap& original_roadmap, const std::vector<int>& interest_nodes) 
+DistanceMatrix::DistanceMatrix(Roadmap& original_roadmap, std::vector<int>& interest_nodes) 
     : roadmap_(original_roadmap), interest_nodes_(interest_nodes) 
 {
     for (int id : interest_nodes_) {
@@ -10,11 +10,11 @@ DistanceMatrix::DistanceMatrix(const Roadmap& original_roadmap, const std::vecto
     }
 }
 
-DijkstraResult DistanceMatrix::computeDijkstra(int start_id) const {
+DijkstraResult DistanceMatrix::computeDijkstra(int start_id) {
     DijkstraResult result;
-    const auto& all_nodes = roadmap_.getNodes();
+    auto& all_nodes = roadmap_.getNodes();
 
-    for (const auto& pair : all_nodes) {
+    for (auto& pair : all_nodes) {
         result.distances[pair.first] = std::numeric_limits<double>::infinity();
         result.predecessors[pair.first] = -1;
     }
@@ -31,7 +31,7 @@ DijkstraResult DistanceMatrix::computeDijkstra(int start_id) const {
 
         if (d > result.distances[u]) continue;
 
-        for (const auto& edge : roadmap_.getNeighbors(u)) {
+        for (auto& edge : roadmap_.getNeighbors(u)) {
             double new_dist = result.distances[u] + edge.weight;
             if (new_dist < result.distances[edge.to]) {
                 result.distances[edge.to] = new_dist;
@@ -43,9 +43,9 @@ DijkstraResult DistanceMatrix::computeDijkstra(int start_id) const {
     return result;
 }
 
-Roadmap DistanceMatrix::buildShortestPathsRoadmap() const {
+Roadmap DistanceMatrix::buildShortestPathsRoadmap() {
     Roadmap simplified_prm;
-    const auto& original_nodes = roadmap_.getNodes();
+    auto& original_nodes = roadmap_.getNodes();
 
     // 1. Add interest nodes to the new roadmap
     for (int id : interest_nodes_) {
@@ -61,7 +61,7 @@ Roadmap DistanceMatrix::buildShortestPathsRoadmap() const {
             int u = interest_nodes_[i];
             int v = interest_nodes_[j];
             
-            // Use .at() because this is a const method and we know the key exists
+            // Use .at() because this is a method and we know the key exists
             double dist = search_cache_.at(u).distances.at(v);
             if (dist < std::numeric_limits<double>::infinity()) {
                 simplified_prm.addEdge(u, v, dist);
@@ -71,7 +71,7 @@ Roadmap DistanceMatrix::buildShortestPathsRoadmap() const {
     return simplified_prm;
 }
 
-std::vector<int> DistanceMatrix::getFullPath(const std::vector<int>& interest_path) const {
+std::vector<int> DistanceMatrix::getFullPath(std::vector<int>& interest_path) {
     std::vector<int> full_global_path;
     
     for (size_t i = 0; i < interest_path.size() - 1; ++i) {

@@ -24,7 +24,7 @@ private:
     // --- INTERNAL HELPERS ---
 
     // Helper to create a single path/line marker
-    visualization_msgs::Marker createPathMarker(const std::vector<geometry_msgs::Point>& points, 
+    visualization_msgs::Marker createPathMarker(std::vector<geometry_msgs::Point>& points, 
                                               const std::string& ns, int id, 
                                               float r, float g, float b, float a,
                                               float width, float z_offset) {
@@ -47,7 +47,7 @@ private:
     }
 
     // Existing Obstacle/Border marker helper (Polygon/Circle)
-    visualization_msgs::Marker createObsMarker(const Obstacle& obs, int id, float r, float g, float b, std::string ns) {
+    visualization_msgs::Marker createObsMarker(Obstacle& obs, int id, float r, float g, float b, std::string ns) {
         visualization_msgs::Marker marker;
         marker.header.frame_id = "map"; 
         marker.header.stamp = ros::Time::now();
@@ -60,8 +60,8 @@ private:
         marker.pose.orientation.w = 1.0;
 
         if (obs.getType() == Obstacle::POLYGON) {
-            const auto& verts = obs.getVertices(); 
-            for (const auto& v : verts) {
+            auto& verts = obs.getVertices(); 
+            for (auto& v : verts) {
                 geometry_msgs::Point p; p.x = v.x; p.y = v.y; p.z = 0.01;
                 marker.points.push_back(p);
             }
@@ -96,11 +96,11 @@ public:
         dubins_pub_      = nh_.advertise<visualization_msgs::Marker>("/planner/trajectory_dubins", 1, true);
     }
 
-    void publishDistanceMatrix(const Roadmap& full_roadmap, const DistanceMatrix& dist_matrix) {
+    void publishDistanceMatrix(Roadmap& full_roadmap, DistanceMatrix& dist_matrix) {
         visualization_msgs::MarkerArray msg;
-        const auto& nodes = full_roadmap.getNodes();
-        const auto& cache = dist_matrix.getSearchCache();
-        const auto& interest_nodes = dist_matrix.getInterestNodes();
+        auto& nodes = full_roadmap.getNodes();
+        auto& cache = dist_matrix.getSearchCache();
+        auto& interest_nodes = dist_matrix.getInterestNodes();
         
         int marker_id = 0;
 
@@ -144,9 +144,9 @@ public:
     }
 
     // 2. The final shortest path after orienteering (Raw Node sequence)
-    void publishOrienteeringPath(const Roadmap& roadmap, const std::vector<int>& path_ids) {
+    void publishOrienteeringPath(Roadmap& roadmap, std::vector<int>& path_ids) {
         std::vector<geometry_msgs::Point> points;
-        const auto& nodes = roadmap.getNodes();
+        auto& nodes = roadmap.getNodes();
         for (int id : path_ids) {
             geometry_msgs::Point p;
             p.x = nodes.at(id).position.x(); p.y = nodes.at(id).position.y();
@@ -157,9 +157,9 @@ public:
     }
 
     // 3. The smoothed path (Shortcut nodes)
-    void publishSmoothedPath(const Roadmap& roadmap, const std::vector<int>& path_ids) {
+    void publishSmoothedPath(Roadmap& roadmap, std::vector<int>& path_ids) {
         std::vector<geometry_msgs::Point> points;
-        const auto& nodes = roadmap.getNodes();
+        auto& nodes = roadmap.getNodes();
         for (int id : path_ids) {
             geometry_msgs::Point p;
             p.x = nodes.at(id).position.x(); p.y = nodes.at(id).position.y();
@@ -170,9 +170,9 @@ public:
     }
 
     // 4. The high-res Dubins trajectory
-    void publishDubinsTrajectory(const std::vector<TrajectoryPoint>& trajectory) {
+    void publishDubinsTrajectory(std::vector<TrajectoryPoint>& trajectory) {
         std::vector<geometry_msgs::Point> points;
-        for (const auto& tp : trajectory) {
+        for (auto& tp : trajectory) {
             geometry_msgs::Point p; p.x = tp.x; p.y = tp.y;
             points.push_back(p);
         }
@@ -181,24 +181,24 @@ public:
     }
     
 
-    void publishObstacles(const std::vector<Obstacle>& obstacles) {
+    void publishObstacles(std::vector<Obstacle>& obstacles) {
         visualization_msgs::MarkerArray msg;
         int id = 0;
-        for (const auto& obs : obstacles) {
+        for (auto& obs : obstacles) {
             msg.markers.push_back(createObsMarker(obs, id++, 1.0, 0.0, 0.0, "obstacles"));
         }
         obstacles_pub_.publish(msg);
     }
 
 
-    void publishBorders(const Obstacle& border) {
+    void publishBorders(Obstacle& border) {
         visualization_msgs::MarkerArray msg;
         msg.markers.push_back(createObsMarker(border, 0, 0.0, 0.0, 1.0, "border"));
         borders_pub_.publish(msg);
     }
 
 
-    void publishRoadmap(const Roadmap& roadmap) {
+    void publishRoadmap(Roadmap& roadmap) {
         visualization_msgs::Marker marker;
         marker.header.frame_id = "map";
         marker.header.stamp = ros::Time::now();
@@ -210,10 +210,10 @@ public:
         marker.color.r = 0.7; marker.color.g = 0.7; marker.color.b = 0.7; marker.color.a = 0.2; // light gray
         marker.pose.orientation.w = 1.0;
 
-        const auto& nodes = roadmap.getNodes();
-        const auto edges = roadmap.getEdges();
+        auto& nodes = roadmap.getNodes();
+        auto edges = roadmap.getEdges();
 
-        for (const auto& edge : edges) {
+        for (auto& edge : edges) {
             if (nodes.count(edge.u) && nodes.count(edge.v)) {
                 geometry_msgs::Point p1, p2;
                 p1.x = nodes.at(edge.u).position.x();
