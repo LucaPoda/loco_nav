@@ -9,52 +9,16 @@ from shapely.affinity import rotate
 from shapely.geometry import Polygon
 from termcolor import colored
 
-# sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
-# from spawn_borders import get_borders_points
 
-# 1. First, tell Python where to look for your files
-# We use os.path to make it more robust, but your hardcoded path works too
-sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
+# Get the directory of the current script (scripts/) and add it to the path
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, script_dir)
 
-# 2. Now that the path is set, you can safely import your local modules
-# from geo_utility import square
-# from spawn_borders import get_borders_points
+from geo_utility import square
+from spawn_borders import get_borders_points
 
 L = 1.0  # Default size for gate
 DELTA = L / 2.0 + 0.1  # 0.1 is half the border width + something
-
-
-def square(X, Y, L, yaw=0):
-    return rotate(Polygon([
-        (X-L/2.0, Y-L/2.0),
-        (X+L/2.0, Y-L/2.0),
-        (X+L/2.0, Y+L/2.0),
-        (X-L/2.0, Y+L/2.0)
-    ]), math.degrees(yaw), origin='center')
-
-def gen_hex_points(L):
-    points = []
-    for i in range(6):
-        angle_rad = math.radians(60 * i)
-        points.append((L * math.cos(angle_rad), L * math.sin(angle_rad)))
-    return points
-
-def gen_rect_points(dx, dy):
-    return [(-dx/2.0, -dy/2.0), (dx/2.0, -dy/2.0), (dx/2.0, dy/2.0), (-dx/2.0, dy/2.0)]
-
-def get_borders_points(yaml_file):
-    try:
-        if "hex" in yaml_file['/_']['ros__parameters']['map']:
-            return gen_hex_points(float(yaml_file['/_']['ros__parameters']['dx']))
-        elif "rect" in yaml_file['/_']['ros__parameters']['map']:
-            return gen_rect_points(float(yaml_file['/_']['ros__parameters']['dx']),
-                                   float(yaml_file['/_']['ros__parameters']['dy']))
-        else:
-            raise Exception("[{}] Map type `{}` not supported".format(__file__, yaml_file['/_']['ros__parameters']['map']))
-
-    except Exception as e:
-        print("The yaml file does not contain the map type")
-        return []
 
 def spawn_gates():
     while  not rospy.has_param('/generate_config_file/gen_map_params_file'):

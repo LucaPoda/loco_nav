@@ -10,17 +10,13 @@ import rospy
 from shapely.geometry import Polygon, Point
 from shapely.affinity import rotate
 
-# from geo_utility import *
+import sys, os
 
-def gen_hex_points(L):
-    points = []
-    for i in range(6):
-        angle_rad = math.radians(60 * i)
-        points.append((L * math.cos(angle_rad), L * math.sin(angle_rad)))
-    return points
+# Get the directory of the current script (scripts/) and add it to the path
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, script_dir)
 
-def gen_rect_points(dx, dy):
-    return [(-dx/2.0, -dy/2.0), (dx/2.0, -dy/2.0), (dx/2.0, dy/2.0), (-dx/2.0, dy/2.0)]
+from geo_utility import *
 
 def get_borders_points(yaml_file):
     try:

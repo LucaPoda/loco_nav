@@ -13,47 +13,12 @@ from pathlib import Path
 import math
 from shapely.geometry import Polygon, Point
 from shapely.affinity import rotate
-# 1. First, tell Python where to look for your files
-# We use os.path to make it more robust, but your hardcoded path works too
-sys.path.insert(0, '/root/ros_ws/src/loco_nav/map_pkg/scripts')
 
-# 2. Now that the path is set, you can safely import your local modules
-# from geo_utility import rectangle
-# from spawn_borders import get_borders_points
+# Get the directory of the current script (scripts/) and add it to the path
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, script_dir)
 
-def rectangle(X, Y, L1, L2, yaw=0):
-    return rotate(Polygon([
-        (X-L1/2.0, Y-L2/2.0),
-        (X+L1/2.0, Y-L2/2.0),
-        (X+L1/2.0, Y+L2/2.0),
-        (X-L1/2.0, Y+L2/2.0)
-    ]), math.degrees(yaw), origin='center')
-
-
-def gen_hex_points(L):
-    points = []
-    for i in range(6):
-        angle_rad = math.radians(60 * i)
-        points.append((L * math.cos(angle_rad), L * math.sin(angle_rad)))
-    return points
-
-def gen_rect_points(dx, dy):
-    return [(-dx/2.0, -dy/2.0), (dx/2.0, -dy/2.0), (dx/2.0, dy/2.0), (-dx/2.0, dy/2.0)]
-
-def get_borders_points(yaml_file):
-    try:
-        if "hex" in yaml_file['/_']['ros__parameters']['map']:
-            return gen_hex_points(float(yaml_file['/_']['ros__parameters']['dx']))
-        elif "rect" in yaml_file['/_']['ros__parameters']['map']:
-            return gen_rect_points(float(yaml_file['/_']['ros__parameters']['dx']),
-                                   float(yaml_file['/_']['ros__parameters']['dy']))
-        else:
-            raise Exception("[{}] Map type `{}` not supported".format(__file__, yaml_file['/_']['ros__parameters']['map']))
-
-    except Exception as e:
-        print("The yaml file does not contain the map type")
-        return []
-
+from geo_utility import rectangle, circle
 
 def spawn_obstacles():
     # In ROS1 we fetch what ROS2 put in context.launch_configurations via ROS params.
