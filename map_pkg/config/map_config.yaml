@@ -1,4 +1,4 @@
-/**/send_obstacles:
+/_/send_obstacles:
   ros__parameters:
     n_obstacles: 3                                # Number of RANDOM obstacles to be spawned
     no_cylinders: true                           # If true, no cylinders will be spawned
@@ -13,7 +13,7 @@
     vect_dim_y: [] #[0.5, 1.0, 1.0]               # Y dimension of the obstacles
     # If vect_* are empty lists or not defined, then only random obstacles will be spawned
 
-/**/send_gates:
+/_/send_gates:
   ros__parameters:
     use_namespace: false    # If true, the gates will be spawned one for each Shelfino. Not yet implemented
     x: [0.0]                # X position of the gate(s)
@@ -21,7 +21,7 @@
     yaw: [0.0]              # Yaw of the gate(s)
     # Values of x and y different from 0.0 will spawn the gates in the given position    
 
-/**/send_victims:
+/_/send_victims:
   ros__parameters:
     victims_activated: true      # If true, the victims will be spawned
     n_victims: 4                 # Number of RANDOM victims to be spawned 
@@ -33,7 +33,7 @@
     victims_timeout: 0           # Time given to collect the victims and reach the gate in seconds. If 0, the simulation will choose one.
     # If vect_* are empty lists or not defined, then only random victims will be spawned
     
-/**:
+/_:
   ros__parameters:
     map: hexagon              # Maps can be "hexagon" or "rectangle"
     dx: 10.0                    # The width of the rectangle or the length of the hexagon's edges. Default edge used in hexagon.world is 12.0
