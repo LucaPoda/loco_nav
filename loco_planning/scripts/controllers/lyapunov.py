@@ -12,7 +12,7 @@ class Robot:
     pass
 
 class LyapunovController:
-    def __init__(self, params: LyapunovParams): #, matlab_engine = None):
+    def __init__(self, params: LyapunovParams):
 
         self.K_P = params.K_P
         self.K_THETA = params.K_THETA
@@ -35,58 +35,59 @@ class LyapunovController:
         ritorna i valori di linear e angular velocity
         """
         if traj_finished:
-            # save errors for plotting
+            # Save errors for plotting
             self.log_e_x.append(0.0)
             self.log_e_y.append(0.0)
             self.log_e_theta.append(0.0)
             return 0.0, 0.0, 0., 0.
 
-        # --- 1. ERROR DEFINITION (Actual - Desired) ---
-        # If your C++ uses this, Python must match it.
+        # Position errors
         ex = actual_state.x - des_x
         ey = actual_state.y - des_y
 
-        # --- 2. HEADING ERROR ---
-        # Using atan2 to handle the +/- pi jumps safely
+        # Extract actual theta
         theta = actual_state.theta
+
+        # Wrap des_theta in range [-pi, pi]
         des_theta_w = math.atan2(math.sin(des_theta), math.cos(des_theta))
         
-        # Error = Actual - Desired
+        # Orientation error
         raw_etheta = theta - des_theta_w
+        
+        # Wrap orientation error in range [-pi, pi]
         etheta = (raw_etheta + np.pi) % (2 * np.pi) - np.pi
         
         # Beta is required for the Lyapunov domega term
         beta = theta + des_theta_w
 
-        # --- 3. POLAR COORDINATES ---
+        # Polar coordinates
         exy = math.sqrt(ex**2 + ey**2)
         psi = math.atan2(ey, ex)
 
-        # --- 4. CONTROL LAW (Note the NEGATIVE signs for stability) ---
-        # Since error is (Act - Des), we need negative feedback to reduce it.
+        # Control law
+        # Since error is (Act - Des), we need negative feedback to reduce it
         dv = -self.K_P * exy * math.cos(psi - theta)
         
-        # Guard the denominator to prevent infinite omega commands
+        # Check the denominator to prevent infinite omega commands
         denom = np.cos(etheta / 2.0)
         if abs(denom) < 0.05: 
             denom = 0.05 * np.sign(denom)
 
-        # domega: Feed-forward term + Heading correction
+        # domega: feed-forward term + heading correction
         # The negative signs ensure V_dot stays <= 0
         domega = -v_d * exy * (1.0 / denom) * np.sin(psi - (beta / 2.0)) - self.K_THETA * np.sin(etheta)
 
-        # Final Commands
+        # Final commands
         v = v_d + dv
         omega = omega_d + domega
 
-        # --- 4. STABILITY MONITOR (V_dot) ---
-        # If this is > 0, the controller is driving AWAY from the target
+        # Monitor stability
+        # If v_dot is > 0, the controller is driving away from the target
         v_dot = -self.K_P * (exy**2) * (np.cos(theta - psi)**2) - self.K_THETA * (np.sin(etheta)**2)
         
         if v_dot > 0.001:
             rospy.logwarn_throttle(1, f"Unstable! V_dot: {v_dot:.4f}")
 
-        # --- 5. LOGGING ---
         self.log_e_x.append(ex)
         self.log_e_y.append(ey)
         self.log_e_theta.append(etheta)
