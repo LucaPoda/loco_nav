@@ -1,4 +1,3 @@
-Markdown
 # Loco Planning Project
 
 ## Setup:
