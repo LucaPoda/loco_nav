@@ -21,8 +21,6 @@ private:
     ros::Publisher smoothed_pub_;       // Path after shortcutting
     ros::Publisher dubins_pub_;         // High-res Dubins trajectory
 
-    // --- INTERNAL HELPERS ---
-
     // Helper to create a single path/line marker
     visualization_msgs::Marker createPathMarker(std::vector<geometry_msgs::Point>& points, 
                                               const std::string& ns, int id, 
@@ -231,6 +229,6 @@ public:
 
     
 
-}; // THE IMPORTANT SEMICOLON
+};
 
 #endif

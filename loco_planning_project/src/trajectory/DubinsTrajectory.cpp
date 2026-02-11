@@ -11,7 +11,6 @@
 namespace ob = ompl::base;
 
 // Helper to discretize angles
-// Center: The focus of the fan. Range: The width of the fan. K: Number of samples
 std::vector<double> getThetaSet(double center, double range, int k) {
     std::vector<double> angles;
     double step = range / (k > 1 ? k - 1 : 1);

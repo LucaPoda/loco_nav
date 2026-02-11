@@ -52,12 +52,7 @@ protected:
     // Abstract method to calculate the geometric path
     virtual Roadmap buildRoadmap() = 0;
 
-    // Compute matrix with dijkstra
-    // virtual std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) = 0;   
-    
     ros::Publisher roadmap_pub_;
-    // Generic function to visualize any roadmap graph
-    //void visualizeRoadmap(const Roadmap& roadmap);
 
     PlannerVisualizer visualizer_;
 

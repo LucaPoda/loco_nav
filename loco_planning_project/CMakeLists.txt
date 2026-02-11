@@ -3,9 +3,8 @@ project(loco_planning_project)
 
 add_compile_options(-std=c++17)
 
-## ------------------------------------------------ ##
-##            DEPENDENCIES                          ##
-## ------------------------------------------------ ##
+
+## DEPENDENCIES:
 include(FetchContent)
 FetchContent_Declare(
   Clipper2
@@ -33,9 +32,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(ompl REQUIRED)
 
-## ------------------------------------------------ ##
-##                 BUILD SETTINGS                   ##
-## ------------------------------------------------ ##
+
+## BUILD SETTINGS:
 
 catkin_package(
   INCLUDE_DIRS include
@@ -51,9 +49,8 @@ include_directories(
   ${clipper2_SOURCE_DIR}/CPP/Clipper2Lib/include
 )
 
-## ------------------------------------------------ ##
-##            LIBRARY (The Planners)                ##
-## ------------------------------------------------ ##
+
+## LIBRARY (The Planners):
 
 # Helper for Clipper2 compilation
 set(CLIPPER_SOURCES
@@ -96,9 +93,8 @@ add_dependencies(planner_lib
   obstacles_msgs_generate_messages_cpp
 )
 
-## ------------------------------------------------ ##
-##            NODE (The Executable)                 ##
-## ------------------------------------------------ ##
+
+## NODE (The Executable):
 
 add_executable(planner_node src/planner_node.cpp)
 
@@ -108,9 +104,8 @@ target_link_libraries(planner_node
   ${OMPL_LIBRARIES}
 )
 
-## ------------------------------------------------ ##
-##            INSTALL RULES                         ##
-## ------------------------------------------------ ##
+
+## INSTALL RULES:
 
 install(TARGETS planner_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

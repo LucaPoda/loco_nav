@@ -32,9 +32,6 @@ private:
 
     // Dijkstra algorithm for shortest path on the graph
     std::map<int, double> dijkstraDistances(int start_id, const Roadmap& roadmap);
-
-    // NxN distance matrix for special nodes
-    // std::map<int, std::map<int, double>> computeSpecialNodesMatrix(const Roadmap& roadmap) override;
 };
 #endif
 
