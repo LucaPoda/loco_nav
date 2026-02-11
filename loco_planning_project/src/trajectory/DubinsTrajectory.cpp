@@ -10,9 +10,8 @@
 
 namespace ob = ompl::base;
 
-// Standard discretisation helper 
-// Helper to discretize angles.
-// Center: The focus of the fan. Range: The width of the fan. K: Number of samples.
+// Helper to discretize angles
+// Center: The focus of the fan. Range: The width of the fan. K: Number of samples
 std::vector<double> getThetaSet(double center, double range, int k) {
     std::vector<double> angles;
     double step = range / (k > 1 ? k - 1 : 1);
@@ -35,28 +34,28 @@ DubinsResult computeOMPLDubinsTrajectory(
     int n = path.size();
     int k = 24;      // Granularity
     
-    // 1. Initialize Headings
+    // Initialize Headings
     std::vector<std::vector<double>> theta_sets(n);
     theta_sets[0] = {start_heading};
     theta_sets[n-1] = {goal_heading};
     for (int i = 1; i < n - 1; ++i) theta_sets[i] = getThetaSet(0, 2.0 * M_PI, k);
 
-    // L[j][th] = Min cost to reach Node j (at heading th) FROM START
+    // L[j][th] = Min cost to reach Node j (at heading th) from start
     std::vector<std::vector<double>> L(n, std::vector<double>(k, std::numeric_limits<double>::infinity()));
     // Parent pointers to reconstruct path
     std::vector<std::vector<int>> parent_idx(n, std::vector<int>(k, -1));
 
-    // Base Case: Start is cost 0
+    // Base Case: cost = 0
     L[0][0] = 0.0;
     int last_reachable_node = 0;
 
-    // --- FORWARD PASS ---
+    // Forward pass
     for (int j = 0; j < n - 1; ++j) {
         bool connection_found = false;
         auto p_curr = nodes.at(path[j]).position;
         auto p_next = nodes.at(path[j+1]).position;
 
-        // Try connecting reachable headings at 'j' -> candidate headings at 'j+1'
+        // Try connecting reachable headings at 'j' to candidate headings at 'j+1'
         for (size_t curr_idx = 0; curr_idx < theta_sets[j].size(); ++curr_idx) {
             
             // Skip unreachable headings
@@ -67,10 +66,10 @@ DubinsResult computeOMPLDubinsTrajectory(
                 s1->setXY(p_curr.x(), p_curr.y()); s1->setYaw(theta_sets[j][curr_idx]);
                 s2->setXY(p_next.x(), p_next.y()); s2->setYaw(theta_sets[j+1][next_idx]);
 
-                // 1. Distance Check
+                // Distance Check
                 double d_len = space->distance(s1.get(), s2.get());
                 
-                // 2. Collision Check
+                // Collision Check
                 bool collision = false;
                 unsigned int chk_steps = std::max(2u, (unsigned int)(d_len / 0.1));
                 for (unsigned int s = 0; s <= chk_steps; ++s) {
@@ -96,14 +95,14 @@ DubinsResult computeOMPLDubinsTrajectory(
         }
 
         if (!connection_found) {
-            // WE ARE STUCK AT NODE 'j'. CANNOT REACH 'j+1'.
+            // Stuck at node j. Break
             break; 
         } else {
             last_reachable_node = j + 1;
         }
     }
 
-    // --- RECONSTRUCT PATH (Backtracking from last_reachable_node) ---
+    // Backward pass to reconstruct path
     std::vector<TrajectoryPoint> trajectory;
     
     // Find best heading at the last reachable node

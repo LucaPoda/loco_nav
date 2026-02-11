@@ -1,4 +1,3 @@
-// planner_ecd.cpp
 #include "planners/planner_ecd.hpp"
 #include <pluginlib/class_list_macros.h>
 #include <limits>
@@ -29,12 +28,11 @@ Roadmap PlannerECD::buildRoadmap() {
 
     std::vector<Eigen::Vector2d> node_positions;
 
-    // ---- Special node IDs (must match PlannerBase expectations)
     const int START_ID = 0;
     const int GOAL_ID  = 1;
     int next_id = 2;
 
-    // ---- Add start & goal
+    // Add start and goal
     Eigen::Vector2d start = env.getStartPose().head<2>();
     Eigen::Vector2d goal  = env.getGoalPose().head<2>();
 
@@ -42,8 +40,8 @@ Roadmap PlannerECD::buildRoadmap() {
     roadmap.addNode(GOAL_ID,  goal,  0.0);
 
     // keep node_positions aligned with roadmap insertion order:
-    node_positions.push_back(start); // index 0
-    node_positions.push_back(goal);  // index 1
+    node_positions.push_back(start);
+    node_positions.push_back(goal);
 
     const auto& victims = env.getVictims();
 
@@ -54,13 +52,13 @@ Roadmap PlannerECD::buildRoadmap() {
         node_positions.push_back(victims[i].position);
     }
 
-    // ---- Map bounds
+    // Map bounds
     double min_x = env.getMinX();
     double max_x = env.getMaxX();
     double min_y = env.getMinY();
     double max_y = env.getMaxY();
 
-    // ---- Deterministic vertical slicing
+    // Deterministic vertical slicing
     const int N_SLICES = 40;
     const int N_Y_SAMPLES = 80;
 
@@ -77,7 +75,7 @@ Roadmap PlannerECD::buildRoadmap() {
     visualization_msgs::MarkerArray slab_markers;
     int marker_id = 0;
 
-    // Create center nodes (one per free interval per slab)
+    // Create center nodes
     for (int i = 0; i < N_SLICES; ++i) {
         double xl = min_x + ( (double)i      ) * (max_x - min_x) / N_SLICES;
         double xr = min_x + ( (double)(i+1) ) * (max_x - min_x) / N_SLICES;
@@ -114,7 +112,6 @@ Roadmap PlannerECD::buildRoadmap() {
                 roadmap.addNode(c.center_id, c.center, 0.0);
                 node_positions.push_back(c.center);
 
-                // ---- RViz slab marker (rectangle covering slab horizontal extent and this y-interval)
                 visualization_msgs::Marker slab;
                 slab.header.frame_id = "map";
                 slab.header.stamp = ros::Time::now();
@@ -129,7 +126,6 @@ Roadmap PlannerECD::buildRoadmap() {
                 slab.pose.position.z = 0.02;
                 slab.pose.orientation.w = 1.0;
 
-                // Size: slightly narrower than slab width, and equal to interval height
                 slab.scale.x = (xr - xl) * 0.95;
                 slab.scale.y = height;
                 slab.scale.z = 0.04;
@@ -141,7 +137,6 @@ Roadmap PlannerECD::buildRoadmap() {
                 slab.lifetime = ros::Duration(0);
                 slab_markers.markers.push_back(slab);
 
-                // ---- RViz center node marker
                 visualization_msgs::Marker node;
                 node.header = slab.header;
                 node.ns = "ecd_centers";
@@ -168,8 +163,8 @@ Roadmap PlannerECD::buildRoadmap() {
         }
     }
 
-    // ---- Create edge nodes at overlap midpoints between slab i and i+1, and connect centers->edge nodes
-    std::vector<int> edge_node_ids; // for possible future use/visualization
+    // Create edge nodes at overlap midpoints between slab i and i+1, and connect centers->edge nodes
+    std::vector<int> edge_node_ids;
     for (int i = 0; i + 1 < N_SLICES; ++i) {
         const auto& left_cells = slabs[i];
         const auto& right_cells = slabs[i+1];
@@ -185,8 +180,8 @@ Roadmap PlannerECD::buildRoadmap() {
                 double overlap_hi = std::min(a_hi, b_hi);
 
                 if (overlap_hi > overlap_lo + 1e-9) {
-                    // Shared vertical edge x coordinate is at right boundary of left slab (or left boundary of right slab)
-                    double x_shared = 0.5 * (left_cells[li].xr + right_cells[ri].xl); // should be same
+                    // Shared vertical edge x coordinate is at right boundary of left slab
+                    double x_shared = 0.5 * (left_cells[li].xr + right_cells[ri].xl);
                     double y_shared_mid = 0.5 * (overlap_lo + overlap_hi);
                     Eigen::Vector2d edge_pos(x_shared, y_shared_mid);
 
@@ -205,7 +200,6 @@ Roadmap PlannerECD::buildRoadmap() {
                     roadmap.addEdge(right_cells[ri].center_id, edge_id, wR);
                     roadmap.addEdge(edge_id, right_cells[ri].center_id, wR);
 
-                    // RViz marker for edge node (different color)
                     visualization_msgs::Marker edge_node;
                     edge_node.header.frame_id = "map";
                     edge_node.header.stamp = ros::Time::now();
@@ -228,7 +222,7 @@ Roadmap PlannerECD::buildRoadmap() {
         }
     }
 
-    // ---- (Optional) connect vertical neighbors inside same slab (to allow vertical motion) - kept simple
+    // connect vertical neighbors inside same slab (to allow vertical motion) - kept simple
     // for (int i = 0; i < N_SLICES; ++i) {
     //     for (size_t k = 0; k + 1 < slabs[i].size(); ++k) {
     //         int idA = slabs[i][k].center_id;
@@ -245,13 +239,13 @@ Roadmap PlannerECD::buildRoadmap() {
     //     }
     // }
 
-    // ---- Victim connection logic (keeps your existing pattern, using node_positions list)
+    // Victim connection
     const int k_neighbors = 15;
     ROS_INFO("Connetting victims...");
     for (int i = 0; i < 2 + static_cast<int>(victims.size()); ++i) {
         std::vector<std::pair<double, int>> neighbors;
 
-        // victims and special nodes are indices [0 .. 1+V], ECD nodes follow in node_positions
+        // victims and special nodes
         for (int j = 2 + static_cast<int>(victims.size()); j < static_cast<int>(node_positions.size()); ++j) {
             if (i == j) continue;
             double d = (node_positions[i] - node_positions[j]).norm();
@@ -266,46 +260,26 @@ Roadmap PlannerECD::buildRoadmap() {
 
             ROS_DEBUG("Checking collision between %d and %d", i, neighbor_idx);
             if (collisionFreeSegment(env, node_positions[i], node_positions[neighbor_idx])) {
-                // map neighbor_idx (index in node_positions) back to roadmap node id:
-                // we added nodes to roadmap in the same order as node_positions (start,goal,victims,centers,edges)
-                // and we assigned explicit node ids in that same sequence, starting from 0 (start),1(goal),2.. victims, then centers/edges via next_id.
-                // To get the roadmap node id for node_positions[k], we need to track the insertion mapping.
-                // Simpler: iterate through roadmap.getNodes() to find the k-th inserted node id.
                 int mapped_id = -1;
                 int counter = 0;
                 for (const auto& kv : roadmap.getNodes()) {
-                    // Note: roadmap.getNodes() is std::map<int, Node>, iteration is by sorted key, not insertion order.
-                    // To avoid mismatch, we can reconstruct a parallel vector of node ids in node_positions insertion order.
-                    // But we kept the invariant: the sequence of node IDs we created was:
-                    // start(0), goal(1), victims(2..), then centers/edges with increasing next_id.
-                    // We can compute mapping directly:
                     if (counter == neighbor_idx) {
                         mapped_id = kv.first;
                         break;
                     }
                     ++counter;
                 }
-                // The above mapping using std::map iteration is not safe if keys are not ordered as insertion.
-                // Instead, derive mapped id by formula when possible:
-                // For indices < (2 + victims.size()) --> id == index
                 int mapped_node_id = -1;
                 if (neighbor_idx < 2 + static_cast<int>(victims.size())) {
-                    mapped_node_id = neighbor_idx; // start/goal/victims ids are exactly indices
+                    mapped_node_id = neighbor_idx;
                 } else {
-                    // centers/edges were assigned consecutive ids starting at next_id_start
-                    // We recorded next_id progression earlier: first center id was (2 + victims.size()), but since next_id was incremented while adding victims,
-                    // the very first center had id = first_center_id = 2 + victims.size()
-                    // And we appended node_positions accordingly, so node_positions index j corresponds to roadmap node id = j
-                    mapped_node_id = neighbor_idx; // this works IF you keep node ids equal to node_positions index
-                    // But in your current scheme we created node ids equal to consecutive integers starting at 0, so this identity holds.
+                    mapped_node_id = neighbor_idx;
                 }
                 if (mapped_node_id >= 0) {
-                    roadmap.addEdge(mapped_node_id, mapped_node_id, 0.0); // noop to ensure map stays consistent (no-op, can be removed)
-                    // proper addEdge victim_id <-> mapped_node_id:
+                    // roadmap.addEdge(mapped_node_id, mapped_node_id, 0.0);
                     int victim_id = i;
                     double d = distance;
                     roadmap.addEdge(victim_id, mapped_node_id, d);
-                    // you may want add the reverse too:
                     roadmap.addEdge(mapped_node_id, victim_id, d);
                     ++connections_made;
                 }

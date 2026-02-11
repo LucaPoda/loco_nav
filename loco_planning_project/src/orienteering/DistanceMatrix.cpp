@@ -47,7 +47,7 @@ Roadmap DistanceMatrix::buildShortestPathsRoadmap() {
     Roadmap simplified_prm;
     auto& original_nodes = roadmap_.getNodes();
 
-    // 1. Add interest nodes to the new roadmap
+    // Add interest nodes to the new roadmap
     for (int id : interest_nodes_) {
         auto it = original_nodes.find(id);
         if (it != original_nodes.end()) {
@@ -55,13 +55,12 @@ Roadmap DistanceMatrix::buildShortestPathsRoadmap() {
         }
     }
 
-    // 2. Connect them using the cached distances
+    // Connect the nodes using cached distances
     for (size_t i = 0; i < interest_nodes_.size(); ++i) {
         for (size_t j = i + 1; j < interest_nodes_.size(); ++j) {
             int u = interest_nodes_[i];
             int v = interest_nodes_[j];
             
-            // Use .at() because this is a method and we know the key exists
             double dist = search_cache_.at(u).distances.at(v);
             if (dist < std::numeric_limits<double>::infinity()) {
                 simplified_prm.addEdge(u, v, dist);
@@ -90,14 +89,11 @@ std::vector<int> DistanceMatrix::getFullPath(std::vector<int>& interest_path) {
 }
 
 std::stringstream DistanceMatrix::display() {
-
-    // 1. Print Header (Target IDs)
     std::stringstream ss;
     ss << "\n--- DISTANCE MATRIX ---\nID\t| ";
     for (int id : interest_nodes_) ss << id << "\t| ";
     ss << "\n-----------------------";
 
-    // 2. Print Rows
     for (int row_id : interest_nodes_) {
         ss << "\n" << row_id << "\t| ";
         for (int col_id : interest_nodes_) {
@@ -106,7 +102,6 @@ std::stringstream DistanceMatrix::display() {
             if (dist >= 1e9 || dist == std::numeric_limits<double>::infinity()) {
                 ss << "INF\t| ";
             } else {
-                // Fixed precision for readability
                 ss << std::fixed << std::setprecision(2) << dist << "\t| ";
             }
         }

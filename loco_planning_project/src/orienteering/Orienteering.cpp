@@ -8,7 +8,7 @@ std::vector<int> OrienteeringPlanner::plan(Roadmap& simple_roadmap, int start_id
     std::vector<int> current_path = {start_id, end_id};
     double current_dist = simple_roadmap.getNeighbors(start_id).at(0).weight; // Assuming direct edge exists
 
-    // 1. GREEDY INSERTION
+    // Greedy insertion
     std::set<int> unvisited;
     for (auto const& [id, node] : nodes) {
         if (id != start_id && id != end_id && node.score > 0) unvisited.insert(id);
@@ -53,7 +53,7 @@ std::vector<int> OrienteeringPlanner::plan(Roadmap& simple_roadmap, int start_id
         }
     }
 
-    // 2. 2-OPT LOCAL SEARCH (Optimize sequence to potentially fit more nodes)
+    // Optimize sequence to potentially fit more nodes
     optimize2Opt(simple_roadmap, current_path);
 
     return current_path;

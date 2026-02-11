@@ -57,13 +57,13 @@ static bool quadHasOccupiedCorner(const EnvironmentHandler& env, const Quad& q) 
            env.checkOccupancy(q.xr, q.yr);
 }
 
-// return true if quad extends outside map bbox
+// true => quad out of bounds
 static bool quadOutsideBounds(const Quad& q, double min_x, double max_x, double min_y, double max_y) {
     const double EPS = 1e-9;
     return (q.xl < min_x - EPS) || (q.xr > max_x + EPS) || (q.yl < min_y - EPS) || (q.yr > max_y + EPS);
 }
 
-// orientation + segment intersection (standard robust-ish predicates)
+// orientation + segment intersection
 static int orient(double ax, double ay, double bx, double by, double cx, double cy) {
     double v = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
     if (v > 0) return 1;
@@ -89,7 +89,6 @@ static bool segIntersectsSeg(double a_x, double a_y, double b_x, double b_y,
     return false;
 }
 
-// check rectangle circle intersection
 static bool rectIntersectsCircle(const Quad& q, const Eigen::Vector2d& center, double radius) {
     // find closest point to circle center on rect
     double cx = std::max(q.xl, std::min(center.x(), q.xr));
@@ -99,24 +98,23 @@ static bool rectIntersectsCircle(const Quad& q, const Eigen::Vector2d& center, d
     return (dx*dx + dy*dy) <= (radius * radius + 1e-9);
 }
 
-// polygon-rectangle intersection using vertex-in-rect, rect-corner-in-poly, and edge-edge intersection
 static bool polygonIntersectsRect(const Obstacle& obs, const Quad& q) {
     const auto& verts = obs.getVertices();
     if (verts.empty()) {
-        // fallback: treat via centroid+inflated radius
+        // fallback. treat via centroid+inflated radius
         Eigen::Vector2d c(obs.getCentroid().x, obs.getCentroid().y);
         double r = obs.getInflatedRadius();
         return rectIntersectsCircle(q, c, r);
     }
 
-    // 1) any polygon vertex inside rect?
+    // Any polygon vertex inside rect
     for (const auto& v : verts) {
         if (v.x >= q.xl - 1e-9 && v.x <= q.xr + 1e-9 && v.y >= q.yl - 1e-9 && v.y <= q.yr + 1e-9) {
             return true;
         }
     }
 
-    // 2) any rect corner inside polygon?
+    // Any rect corner inside polygon
     double corners[4][2] = {
         {q.xl, q.yl},
         {q.xl, q.yr},
@@ -127,7 +125,7 @@ static bool polygonIntersectsRect(const Obstacle& obs, const Quad& q) {
         if (obs.checkCollision(corners[k][0], corners[k][1])) return true;
     }
 
-    // 3) any polygon edge intersects any rect edge?
+    // Any polygon edge intersects any rect edge
     auto rectEdges = std::array<std::pair<Eigen::Vector2d,Eigen::Vector2d>,4>{
         std::make_pair(Eigen::Vector2d(q.xl,q.yl), Eigen::Vector2d(q.xr,q.yl)),
         std::make_pair(Eigen::Vector2d(q.xr,q.yl), Eigen::Vector2d(q.xr,q.yr)),
@@ -162,7 +160,6 @@ static bool polygonIntersectsRect(const Obstacle& obs, const Quad& q) {
     return false;
 }
 
-// Test whether obstacle intersects the quad (geometry-based)
 static bool obstacleIntersectsQuad(const Obstacle& obs, const Quad& q) {
     if (obs.getType() == Obstacle::CIRCLE) {
         Eigen::Vector2d c(obs.getCentroid().x, obs.getCentroid().y);
@@ -283,7 +280,7 @@ Roadmap PlannerACD::buildRoadmap() {
             if (!outside && !has_occupied_corner && !fully_covered && !intersects_any) {
                 leaves.push_back(q);
             }
-            // Go to the next one
+            // Skip to the next one
             continue;
         }
 
@@ -378,7 +375,8 @@ Roadmap PlannerACD::buildRoadmap() {
         cand.reserve(cells.size());
         for (const auto& c : cells) {
             double d = (victim_pos - c.center).norm();
-            if (d >= min_connection_distance_) {   // ← enforce constraint
+            // 4R
+            if (d >= min_connection_distance_) {
                 cand.emplace_back(d, c.center_id);
             }
         }

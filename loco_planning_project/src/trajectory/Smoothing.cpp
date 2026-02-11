@@ -1,4 +1,3 @@
-// Smoothing.cpp
 #include "trajectory/Smoothing.hpp"
 
 std::vector<int> smoothPathVictimAware(Roadmap& roadmap, 
@@ -15,7 +14,7 @@ std::vector<int> smoothPathVictimAware(Roadmap& roadmap,
         
         // Try to find the furthest possible node j to shortcut to
         for (int j = i + 2; j < (int)path.size(); ++j) {
-            // 1. Victim Check: Do not skip nodes that have a score > 0
+            // Victim Check: Do not skip nodes that have a score > 0
             bool victim_skipped = false;
             for (int k = i + 1; k < j; ++k) {
                 if (nodes.at(path[k]).score > 0) { 
@@ -25,7 +24,7 @@ std::vector<int> smoothPathVictimAware(Roadmap& roadmap,
             }
             if (victim_skipped) break;
 
-            // 2. Obstacle Collision Check
+            // Obstacle Collision Check
             auto p_start = nodes.at(path[i]).position;
             auto p_end = nodes.at(path[j]).position;
             double dist = (p_end - p_start).norm();

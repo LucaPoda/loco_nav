@@ -1,4 +1,4 @@
-#include "environment/Roadmap.hpp" // Adjust path as needed based on your include directory
+#include "environment/Roadmap.hpp" 
 
 void Roadmap::addNode(int id, Eigen::Vector2d position, double score) {
     nodes_[id] = {id, position, score};
@@ -9,9 +9,7 @@ void Roadmap::addNode(int id, double x, double y, double score) {
 }
 
 void Roadmap::addEdge(int id1, int id2, double weight) {
-    // Add edge from 1 to 2
     adjacency_list_[id1].push_back({id2, weight});
-    // Add edge from 2 to 1 (undirected)
     adjacency_list_[id2].push_back({id1, weight});
 }
 
@@ -31,7 +29,7 @@ std::vector<EdgeDisplay> Roadmap::getEdges() {
 
         for (auto& edge : neighbors) {
             int v = edge.to;
-            // Only add the edge if u < v to avoid duplicate undirected edges in the list
+            // Avoid duplicate undirected edges
             if (u < v) {
                 edges.push_back({u, v, edge.weight});
             }

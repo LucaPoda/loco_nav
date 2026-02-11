@@ -12,7 +12,7 @@ Obstacle::Obstacle(const geometry_msgs::Polygon& poly) : type_(POLYGON), radius_
     for (const auto& p : poly.points) {
         raw_polygon_.push_back({p.x, p.y});
     }
-    inflate_direction_ = -1; // borders should be inflated inward
+    inflate_direction_ = -1; // borders inflated inward
 }
 
 Obstacle::Obstacle(const obstacles_msgs::ObstacleMsg& msg) {
@@ -82,15 +82,13 @@ bool Obstacle::checkCollision(const Eigen::Vector3d& p) const {
 }
 
 bool Obstacle::checkCollision(double x, double y) const {
-    // AABB Check (for efficiency)
     if (!isInsideAABB(x, y) && inflate_direction_ > 0) return false;
     
     bool inside = false;
-    if (type_ == CIRCLE) {
+    if (type_ == CIRCLE) { // Trivial
         inside = std::hypot(x - centroid_.x, y - centroid_.y) <= inflated_radius_;
     } 
-    else {
-        // Ray-Casting Algorithm
+    else { // Raycasting
         size_t n = c_space_polygon_.size();
         for (size_t i = 0, j = n - 1; i < n; j = i++) {
             double xi = c_space_polygon_[i].x;
