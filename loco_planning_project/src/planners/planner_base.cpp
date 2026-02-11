@@ -221,13 +221,15 @@ void PlannerBase::run() {
                     }
                 }
 
+                double time_traj = (params_.v_max > 0) ? (length_m / params_.v_max) : 0.0;
+
                 std::stringstream ss;
                 ss << "\n" << std::string(50, '-') << "\n";
                 ss << " PLANNING METRICS \n";
                 ss << std::string(50, '-') << "\n";
                 ss << std::left << std::setw(30) << "Computation Time (s)" << std::right << std::setw(15) << std::fixed << std::setprecision(4) << computation_time << "\n";
                 ss << std::left << std::setw(30) << "Trajectory Length (m)" << std::right << std::setw(15) << std::fixed << std::setprecision(2) << length_m << "\n";
-                ss << std::left << std::setw(30) << "Victims Visited" << std::right << std::setw(15) << (plan_found ? std::to_string(original_scores.size() - 2 - blacklisted_victims.size()) : "FAILED") << "\n";
+                ss << std::left << std::setw(30) << "Trajectory time (t)" << std::right << std::setw(15) << std::fixed << std::setprecision(2) << time_traj << "\n";
                 ss << std::string(50, '-') << "\n";
                 ROS_INFO_STREAM(ss.str());
 

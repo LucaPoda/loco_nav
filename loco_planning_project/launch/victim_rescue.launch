@@ -9,7 +9,7 @@
   <arg name="debug" default="false" />
 
   <arg name="world_name" default="empty.world" />
-  <arg name="gen_map_params_file" default="$(find map_pkg)/config/demos/victims/victims4.yaml" />
+  <arg name="gen_map_params_file" default="$(find map_pkg)/config/demos/victims/victims3.yaml" />
   <arg name="elements_models_path" default="$(find map_pkg)/models" />
   <arg name="gazebo_models_path" default="$(find map_pkg)/worlds" />
 
@@ -54,7 +54,11 @@
       args="0 0 0 0 0 0 map limo$(arg robot_id)/odom" />
 
     <group if="$(arg start_controller)">
-      <node pkg="loco_planning" type="controller.py" name="controller" output="screen" args="--robot_id $(arg robot_id) --debug $(arg debug)"/>
+      <node pkg="loco_planning" type="controller.py" name="controller" output="screen" 
+        args="--robot_id $(arg robot_id) --debug $(arg debug)"
+        respawn="true"
+        respawn_delay="10"
+        launch-prefix="bash -c 'sleep 10; $0 $@' " />
     </group>
   </group>
 
