@@ -13,8 +13,6 @@ sudo apt-get update && sudo apt-get install -y ros-noetic-ompl
 roslaunch loco_planning_project victim_rescue.launch
 ```
 2. Run Planner:
-
-Run one of the following commands to execute the desired planner:
 ```bash
 roslaunch loco_planning_project planner.launch algo:=prm
 roslaunch loco_planning_project planner.launch algo:=acd
