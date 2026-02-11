@@ -14,13 +14,12 @@ void PlannerPRM::initialize(const std::string& robot_name) {
     // Load PRM-specific params
     ros::NodeHandle pnh("~");
     pnh.param<int>("prm/n_samples", n_samples, 200);
-    pnh.param<int>("prm/k_neighbors", k_neighbors, 10);
     pnh.param<double>("prm/resolution", resolution, 0.05);
     pnh.param<double>("prm/min_connection_distance", params_.min_connection_distance, 4.0 * params_.min_radius);
     pnh.param<double>("prm/max_connection_distance", params_.max_connection_distance, 4.0);
 
 
-    ROS_INFO("PRM initialized: %d samples, k=%d, res=%.3f", n_samples, k_neighbors, resolution);
+    ROS_INFO("PRM initialized: %d samples, res=%.3f", n_samples, resolution);
 }
 
 Roadmap PlannerPRM::buildRoadmap() {
@@ -114,7 +113,7 @@ Roadmap PlannerPRM::buildRoadmap() {
         std::sort(neighbors.begin(), neighbors.end());
 
         int connections_made = 0;
-        for (size_t k = 0; k < neighbors.size() && connections_made < k_neighbors; ++k) {
+        for (size_t k = 0; k < neighbors.size(); ++k) {
             int neighbor_idx = neighbors[k].second;
             double distance = neighbors[k].first;
 

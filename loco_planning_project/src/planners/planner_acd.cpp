@@ -20,12 +20,12 @@ void PlannerACD::initialize(const std::string& robot_name) {
     pnh.param("k_victim_neighbors", k_victim_neighbors_, 4);
     pnh.param("min_connection_distance", min_connection_distance_, 1.6);
 
-    if (quadtree_min_size_ < min_connection_distance_/2) {
+    if (quadtree_min_size_ < min_connection_distance_) {
         // ROS_WARN(
         //     "quadtree_min_size (%.3f) < min_connection_distance (%.3f)/2. "
         //     "Clamping quadtree_min_size to min_connection_distance/2.",
         //     quadtree_min_size_, min_connection_distance_/2);
-        quadtree_min_size_ = min_connection_distance_/2;
+        quadtree_min_size_ = min_connection_distance_;
     }
 
 

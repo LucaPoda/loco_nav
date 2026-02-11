@@ -86,7 +86,7 @@
     - 0.0
 /_/send_timeout:
   ros__parameters:
-    victims_timeout: 60
+    victims_timeout: 600
 /_/send_victims:
   ros__parameters:
     max_weight: 500.0

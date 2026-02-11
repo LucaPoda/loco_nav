@@ -19,7 +19,6 @@
 
 struct PlannerParams {
     double v_max;
-    double curvature_max;
     double dt;
 
     double t_max;
@@ -27,7 +26,7 @@ struct PlannerParams {
     double step_size;
     double min_connection_distance; 
     double max_connection_distance; 
-    PlannerParams() : v_max(0.1), curvature_max(1.0), dt(0.01), t_max(400), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
+    PlannerParams() : v_max(0.1), dt(0.01), t_max(400), step_size(0.05), min_connection_distance(1.6), max_connection_distance(4.0) {}
 };
 
 class PlannerBase {
@@ -64,7 +63,7 @@ protected:
 
     // Environment data form ROS:
     EnvironmentHandler env_;
-    // Planner parameters: v_max, curvature_max, dt
+
     PlannerParams params_; 
 
 

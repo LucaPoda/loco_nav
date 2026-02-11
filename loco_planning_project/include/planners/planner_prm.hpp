@@ -24,7 +24,6 @@ private:
     // PRM-specific parameters and helepers here
     // Parameters
     int n_samples;
-    int k_neighbors;
     double resolution;
 
     // Helpers

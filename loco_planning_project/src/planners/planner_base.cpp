@@ -25,7 +25,6 @@ void PlannerBase::initialize(const std::string& robot_name) {
 
     // Load trajectory limits
     pnh.param<double>("v_max", params_.v_max, 0.5);
-    pnh.param<double>("curvature_max", params_.curvature_max, 1.0);
     
     pnh.param<double>("min_radius", params_.min_radius, 0.4);
     pnh.param<double>("step_size", params_.step_size, 0.05);
@@ -55,7 +54,6 @@ void PlannerBase::initialize(const std::string& robot_name) {
     ROS_INFO("------------------------------------------------");
     ROS_INFO(" DT: %.4f s", params_.dt);
     ROS_INFO(" V Max: %.2f m/s", params_.v_max);
-    ROS_INFO(" Curvature Max: %.2f", params_.curvature_max);
     ROS_INFO(" t_max (Timeout): %.2f s", params_.t_max);
     ROS_INFO(" s_max (Path Length): %.2f m", max_path_length_);
     ROS_INFO(" min_radius: %.2f", params_.min_radius);
@@ -144,7 +142,7 @@ void PlannerBase::run() {
 
                     // Compute Dubins
                     auto result = computeOMPLDubinsTrajectory(roadmap, smoothed_path, 
-                                                            params_.curvature_max, params_.dt,
+                                                            params_.min_radius, params_.dt,
                                                             env_.getStartPose().z(), env_.getGoalPose().z(), env_);
 
                     if (result.success) {

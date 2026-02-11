@@ -15,20 +15,16 @@ inflation_epsilon: 0.01
 # Used to generate the timed reference trajectory
 v_max: 0.5
 
-# Maximum curvature (1/turning_radius)
-# curvature_max = 1.0 means Min Turning Radius = 1.0m
-curvature_max: 1.0 
+min_radius: 1.0 # robot minimum steering radius
 
 step_size: 0.05
 t_max: 400
 
 # --- Probabilistic Roadmap (PRM) ---
 prm:
-  n_samples: 400        # Number of random nodes to scatter
-  #connection_radius: 2.0   # Max distance to connect two nodes
-  #k_neighbors: 15    # Max neighbors to check for connection
-  min_connection_distance: 1.6  # 4 * min_radius (0.4) = 1.6m
-  max_connection_distance: 7.0  # Prevents edges that are too long/risky
+  n_samples: 200        # Number of random nodes to scatter
+  min_connection_distance: 2.0  # 4 * min_radius (0.4) = 1.6m
+  max_connection_distance: 4.0  # Prevents edges that are too long/risky
   resolution: 0.05
 
 # --- Exact Cell Decomposition Planner ---
@@ -40,4 +36,4 @@ acd:
   quadtree_max_depth: 6
   quadtree_min_size: 0.2
   k_victim_neighbors: 4
-  min_connection_distance: 1.6 
+  min_connection_distance: 2.0
