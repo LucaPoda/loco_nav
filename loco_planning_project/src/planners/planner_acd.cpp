@@ -375,7 +375,7 @@ Roadmap PlannerACD::buildRoadmap() {
         cand.reserve(cells.size());
         for (const auto& c : cells) {
             double d = (victim_pos - c.center).norm();
-            // 4R
+            // 2R
             if (d >= min_connection_distance_) {
                 cand.emplace_back(d, c.center_id);
             }

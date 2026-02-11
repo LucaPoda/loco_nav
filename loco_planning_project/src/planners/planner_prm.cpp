@@ -96,7 +96,7 @@ Roadmap PlannerPRM::buildRoadmap() {
 
             double d = (node_positions[i] - node_positions[j]).norm();
 
-            // If distance is less than 4R, we skip this neighbor to avoid CCC/Lightbulb loops
+            // If distance is less than 4R, we skip this neighbor to avoid CC curves
             if (d < params_.min_connection_distance) {
                 continue;
             }
